@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, ArrowRightLeft, CheckCircle2, Eye, EyeOff, Loader2, PackageSearch, ShieldCheck, Store, UserPlus } from "lucide-react";
+import { ArrowLeft, ArrowRightLeft, CheckCircle2, Eye, EyeOff, Loader2, PackageSearch, ShieldCheck, Store, UserPlus, Globe } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -115,11 +115,21 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-6xl px-6 py-10 lg:py-16">
-        <div className="flex items-center gap-3">
-          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/15 text-primary">
-            <Store className="h-6 w-6" />
-          </span>
-          <span className="text-lg font-semibold tracking-tight">ENVY Marketplace</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/15 text-primary">
+              <Store className="h-6 w-6" />
+            </span>
+            <span className="text-lg font-semibold tracking-tight">ENVY Marketplace</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setLocation("/tienda")}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-sm text-muted-foreground hover:bg-primary/5 hover:text-foreground transition-all"
+          >
+            <Globe className="h-4 w-4" />
+            Ver la Vitrina
+          </button>
         </div>
 
         <div className="mt-10 grid items-center gap-12 lg:mt-14 lg:grid-cols-[1.1fr_minmax(380px,1fr)] lg:gap-16">

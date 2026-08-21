@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useLocation } from "wouter";
-import { Store, Loader2, CheckCircle2, Eye, EyeOff } from "lucide-react";
+import { Store, Loader2, CheckCircle2, Eye, EyeOff, Globe } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,14 +53,24 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-6">
       <div className="w-full max-w-md space-y-8">
-        <div className="text-center space-y-3">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/15 text-primary mx-auto">
-            <Store className="w-8 h-8" />
+        <div className="flex items-center justify-between">
+          <div className="text-center space-y-3 flex-1">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/15 text-primary mx-auto">
+              <Store className="w-8 h-8" />
+            </div>
+            <h1 className="text-2xl font-bold font-display text-foreground">Crea tu tienda</h1>
+            <p className="text-muted-foreground text-sm">
+              Dale un nombre a tu tienda y crea tu cuenta. Después podrás agregar productos.
+            </p>
           </div>
-          <h1 className="text-2xl font-bold font-display text-foreground">Crea tu tienda</h1>
-          <p className="text-muted-foreground text-sm">
-            Dale un nombre a tu tienda y crea tu cuenta. Después podrás agregar productos.
-          </p>
+          <button
+            type="button"
+            onClick={() => setLocation("/tienda")}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border text-xs text-muted-foreground hover:bg-primary/5 hover:text-foreground transition-all shrink-0"
+          >
+            <Globe className="h-3.5 w-3.5" />
+            Vitrina
+          </button>
         </div>
 
         {success ? (
