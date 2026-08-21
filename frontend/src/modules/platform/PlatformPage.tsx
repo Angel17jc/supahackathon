@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { authenticatedFetch } from "@/lib/auth";
 import { useAuth } from "@/lib/auth";
+import { Link } from "wouter";
+import { Globe } from "lucide-react";
 import {
   createOrganization,
   createOrganizationUser,
@@ -78,9 +80,17 @@ export default function Platform() {
     <Sidebar />
     <main className="flex-1 overflow-auto p-8">
       <div className="mx-auto max-w-2xl space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Administración de plataforma</h1>
-          <p className="mt-2 text-muted-foreground">Crea una licorería cliente y el usuario propietario que la administrará.</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Administración de plataforma</h1>
+            <p className="mt-2 text-muted-foreground">Crea una licorería cliente y el usuario propietario que la administrará.</p>
+          </div>
+          <Link href="/tienda">
+            <button className="flex items-center gap-2 px-4 py-2.5 border border-border rounded-xl hover:bg-primary/5 transition-all text-sm font-medium text-muted-foreground hover:text-foreground">
+              <Globe className="w-4 h-4" />
+              Vitrina Pública
+            </button>
+          </Link>
         </div>
         <form onSubmit={submit} className="space-y-5 rounded-2xl border border-border bg-card p-6 shadow-xl">
           <Input aria-label="Nombre de la empresa" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Nombre de la licorería" required />

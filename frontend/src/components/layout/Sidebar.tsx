@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Package, Tag, ArrowRightLeft, Store, Building2, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, Tag, ArrowRightLeft, Store, Building2, LogOut, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 
@@ -44,7 +44,10 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
         {role === "platform_admin" && (
-          <Link href="/clientes"><button className={cn("w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all", location === "/clientes" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-primary/5 hover:text-foreground")}><Building2 className="w-5 h-5" /><span className="font-medium text-sm">Clientes</span></button></Link>
+          <>
+            <Link href="/tienda"><button className={cn("w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all", location === "/tienda" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-primary/5 hover:text-foreground")}><Globe className="w-5 h-5" /><span className="font-medium text-sm">Vitrina Pública</span></button></Link>
+            <Link href="/clientes"><button className={cn("w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all", location === "/clientes" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-primary/5 hover:text-foreground")}><Building2 className="w-5 h-5" /><span className="font-medium text-sm">Clientes</span></button></Link>
+          </>
         )}
         {menuItems.map((item) => {
           const isActive = location === item.href;

@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Store, Search, Package, LogIn, ShoppingCart } from "lucide-react";
+import { Store, Search, Package, LogIn, ShoppingCart, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/lib/auth";
 
 interface Shop {
   id: string;
@@ -115,6 +116,7 @@ function ShopCard({ shop, isSelected, onClick }: { shop: Shop; isSelected: boole
 
 export default function ShopPage() {
   const [, setLocation] = useLocation();
+  const { session } = useAuth();
   const [shops, setShops] = useState<Shop[]>([]);
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [selectedShop, setSelectedShop] = useState<string | null>(null);
@@ -165,15 +167,27 @@ export default function ShopPage() {
               <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em]">Marketplace</p>
             </div>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setLocation("/iniciar-sesion")}
-            className="gap-2"
-          >
-            <LogIn className="w-4 h-4" />
-            Iniciar sesión
-          </Button>
+          {session ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLocation("/panel")}
+              className="gap-2"
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              Volver al Panel
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLocation("/iniciar-sesion")}
+              className="gap-2"
+            >
+              <LogIn className="w-4 h-4" />
+              Iniciar sesión
+            </Button>
+          )}
         </div>
       </header>
 
