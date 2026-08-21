@@ -101,17 +101,14 @@ export async function registerRoutes(
         .from("profiles")
         .upsert({ id: userId, full_name: email.split("@")[0] });
 
-      // Sign in the user and return session
-      const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
+      // Return success — the frontend will sign in with the new credentials.
+      return res.status(201).json({
+        organization: org,
         email: email.trim().toLowerCase(),
         password,
       });
-
-      return res.status(201).json({
-        organization: org,
-        session: sessionData?.session ?? null,
-      });
-    } catch (error) {
+    } catch (error: any) {
+      console.error("register-shop error:", error?.message ?? error);
       next(error);
     }
   });

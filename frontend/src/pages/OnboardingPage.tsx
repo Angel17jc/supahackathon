@@ -34,10 +34,12 @@ export default function OnboardingPage() {
 
       const data = await res.json();
 
-      // Set the session in Supabase client
-      if (data.session) {
-        await supabase.auth.setSession(data.session);
-      }
+      // Sign in on the client side using the Supabase JS client
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: data.email || email,
+        password: data.password || password,
+      });
+      if (signInError) throw new Error("Cuenta creada pero no se pudo iniciar sesión: " + signInError.message);
 
       setSuccess(true);
       setTimeout(() => setLocation("/inventario", { replace: true }), 1500);
