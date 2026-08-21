@@ -11,6 +11,7 @@ import Movements from "@/modules/inventory/movements/MovementsPage";
 import Categories from "@/modules/catalog/categories/CategoriesPage";
 import Platform from "@/modules/platform/PlatformPage";
 import ShopPage from "@/modules/marketplace/ShopPage";
+import ProductPage from "@/modules/marketplace/ProductPage";
 import SecurityPage from "@/modules/marketplace/SecurityPage";
 import Login from "@/pages/Login";
 import ResetPassword from "@/pages/ResetPassword";
@@ -41,7 +42,7 @@ function ProtectedRouter() {
   const { session, role, activeOrganization, isLoading, isOrganizationsLoading, isPasswordRecovery } = useAuth();
   const [location, setLocation] = useLocation();
   const isPasswordReset = isPasswordRecovery || window.location.search.includes("reset=1");
-  const isPublicRoute = location === "/tienda" || location === "/iniciar-sesion" || location === "/recuperar-acceso" || location === "/restablecer-contrasena";
+  const isPublicRoute = location === "/tienda" || location === "/iniciar-sesion" || location === "/recuperar-acceso" || location === "/restablecer-contrasena" || location.startsWith("/producto/");
 
   useEffect(() => {
     if (isLoading || isOrganizationsLoading) return;
@@ -64,6 +65,7 @@ function ProtectedRouter() {
   if (isLoading || isOrganizationsLoading) return <div className="min-h-screen bg-background" />;
   if (isPasswordReset) return <ResetPassword />;
   if (location === "/tienda") return <ShopPage />;
+  if (location.startsWith("/producto/")) return <ProductPage />;
   if (!session || !role) return <Login />;
   if (!activeOrganization) return <main className="grid min-h-screen place-items-center bg-background p-6 text-center text-muted-foreground">No tienes una empresa activa asignada.</main>;
   return <Router />;

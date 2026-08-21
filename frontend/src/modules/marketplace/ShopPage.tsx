@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Store, Search, Package, LogIn, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,9 +42,12 @@ async function fetchCatalog(shopId?: string, search?: string): Promise<CatalogPr
   return res.json();
 }
 
-function ProductCard({ product }: { product: CatalogProduct }) {
+function ProductCard({ product, onClick }: { product: CatalogProduct; onClick: () => void }) {
   return (
-    <div className="group rounded-2xl border border-border/50 bg-card overflow-hidden transition-all hover:shadow-xl hover:shadow-primary/5 hover:border-primary/20">
+    <button
+      onClick={onClick}
+      className="group rounded-2xl border border-border/50 bg-card overflow-hidden transition-all hover:shadow-xl hover:shadow-primary/5 hover:border-primary/20 text-left w-full"
+    >
       <div className="aspect-[4/3] bg-muted/50 flex items-center justify-center overflow-hidden">
         {product.imageUrl ? (
           <img
@@ -75,9 +78,19 @@ function ProductCard({ product }: { product: CatalogProduct }) {
               {product.categoryName}
             </Badge>
           )}
+          {product.quantity <= 5 && product.quantity > 0 && (
+            <Badge variant="secondary" className="text-xs text-amber-500">
+              Quedan {product.quantity}
+            </Badge>
+          )}
+          {product.quantity === 0 && (
+            <Badge variant="destructive" className="text-xs">
+              Agotado
+            </Badge>
+          )}
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -109,28 +122,33 @@ export default function ShopPage() {
   const [loading, setLoading] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(true);
 
-  // Carga inicial
-  useState(() => {
-    Promise.all([fetchShops(), fetchCatalog()]).then(([s, p]) => {
-      setShops(s);
-      setProducts(p);
-    }).finally(() => {
-      setLoading(false);
-      setLoadingProducts(false);
-    });
-  });
+  useEffect(() => {
+    Promise.all([fetchShops(), fetchCatalog()])
+      .then(([s, p]) => {
+        setShops(s);
+        setProducts(p);
+      })
+      .finally(() => {
+        setLoading(false);
+        setLoadingProducts(false);
+      });
+  }, []);
 
   function handleShopClick(shopId: string | null) {
     const next = shopId === selectedShop ? null : shopId;
     setSelectedShop(next);
     setLoadingProducts(true);
-    fetchCatalog(next ?? undefined, search || undefined).then(setProducts).finally(() => setLoadingProducts(false));
+    fetchCatalog(next ?? undefined, search || undefined)
+      .then(setProducts)
+      .finally(() => setLoadingProducts(false));
   }
 
   function handleSearch(value: string) {
     setSearch(value);
     setLoadingProducts(true);
-    fetchCatalog(selectedShop ?? undefined, value || undefined).then(setProducts).finally(() => setLoadingProducts(false));
+    fetchCatalog(selectedShop ?? undefined, value || undefined)
+      .then(setProducts)
+      .finally(() => setLoadingProducts(false));
   }
 
   return (
@@ -228,7 +246,11 @@ export default function ShopPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard
+                key={product.id}
+                product={product}
+                onClick={() => setLocation(`/producto/${product.id}`)}
+              />
             ))}
           </div>
         )}
