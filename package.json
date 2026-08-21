@@ -9,7 +9,9 @@
     "start": "NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
     "test": "tsx --test shared/**/*.test.ts backend/**/*.test.ts",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "db:verify": "tsx script/verify-db.ts",
+    "db:admin": "tsx script/bootstrap-admin.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
