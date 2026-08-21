@@ -116,7 +116,7 @@ function ShopCard({ shop, isSelected, onClick }: { shop: Shop; isSelected: boole
 
 export default function ShopPage() {
   const [, setLocation] = useLocation();
-  const { session } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [shops, setShops] = useState<Shop[]>([]);
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [selectedShop, setSelectedShop] = useState<string | null>(null);
@@ -167,7 +167,7 @@ export default function ShopPage() {
               <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em]">Marketplace</p>
             </div>
           </div>
-          {session ? (
+          {!authLoading && user ? (
             <Button
               variant="outline"
               size="sm"
@@ -177,7 +177,7 @@ export default function ShopPage() {
               <LayoutDashboard className="w-4 h-4" />
               Volver al Panel
             </Button>
-          ) : (
+          ) : !authLoading ? (
             <Button
               variant="outline"
               size="sm"
@@ -187,7 +187,7 @@ export default function ShopPage() {
               <LogIn className="w-4 h-4" />
               Iniciar sesión
             </Button>
-          )}
+          ) : null}
         </div>
       </header>
 
