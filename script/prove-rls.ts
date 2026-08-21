@@ -167,6 +167,28 @@ async function main() {
     intruso.error ? intruso.error.message : "SE SUBIÓ, la política de Storage no lo impidió",
   );
 
+  // El bucket tambien limita QUE se sube, no solo quien. Storage aplica estas
+  // dos reglas en su propio servidor, antes de tocar la base, asi que valen
+  // igual para la clave de servicio: son la unica restriccion del proyecto que
+  // esa clave tampoco puede saltarse.
+  const tipoProhibido = await espiga.storage
+    .from("productos")
+    .upload(`${espigaId}/9999/pagina.html`, "<h1>hola</h1>", { contentType: "text/html", upsert: true });
+  report(
+    "La Espiga sube un HTML en vez de una imagen",
+    Boolean(tipoProhibido.error),
+    tipoProhibido.error ? tipoProhibido.error.message : "SE SUBIO, el bucket no filtra el tipo",
+  );
+
+  const demasiadoGrande = await espiga.storage
+    .from("productos")
+    .upload(`${espigaId}/9999/grande.png`, new Uint8Array(3 * 1024 * 1024), { contentType: "image/png", upsert: true });
+  report(
+    "La Espiga sube 3 MB con el limite en 2 MB",
+    Boolean(demasiadoGrande.error),
+    demasiadoGrande.error ? demasiadoGrande.error.message : "SE SUBIO, el bucket no limita el tamano",
+  );
+
   const propia = await espiga.storage
     .from("productos")
     .upload(`${espigaId}/9999/propia.svg`, "<svg xmlns='http://www.w3.org/2000/svg'/>", {
@@ -200,7 +222,7 @@ async function main() {
 
   console.log(
     failures === 0
-      ? "\nLas 13 comprobaciones pasaron.\n"
+      ? "\nLas 15 comprobaciones pasaron.\n"
       : `\n${failures} comprobación(es) fallaron.\n`,
   );
   process.exit(failures === 0 ? 0 : 1);

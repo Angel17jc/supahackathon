@@ -10,6 +10,7 @@ import { insertProductSchema } from "@shared/schema";
 import { useCreateProduct, useUpdateProduct } from "@/hooks/use-products";
 import { useCategories } from "@/hooks/use-categories";
 import { Loader2 } from "lucide-react";
+import { ProductImageUpload } from "./ProductImageUpload";
 import { useEffect } from "react";
 
 // Extend schema for form validation to handle string inputs for numbers
@@ -177,6 +178,20 @@ export function ProductModal({ open, onOpenChange, product }: ProductModalProps)
                         <SelectItem value="no">Borrador</SelectItem>
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="imageUrl"
+                render={({ field }) => (
+                  <FormItem className="md:col-span-2">
+                    <FormLabel>Portada</FormLabel>
+                    <FormControl>
+                      <ProductImageUpload value={field.value ?? ""} onChange={field.onChange} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

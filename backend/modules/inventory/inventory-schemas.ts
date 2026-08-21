@@ -20,7 +20,8 @@ const productFields = {
   costPrice: z.coerce.number().min(0).max(1_000_000),
   sellingPrice: z.coerce.number().min(0).max(1_000_000),
   categoryId: optionalReferenceIdSchema,
-  supplierId: optionalReferenceIdSchema,
+  imageUrl: z.string().trim().url().max(2_000).nullable().optional().or(z.literal("").transform(() => null)),
+  isPublished: z.boolean().optional(),
 };
 
 export const createProductSchema = api.products.create.input.extend(productFields);
