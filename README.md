@@ -220,6 +220,8 @@ El job de despliegue está inactivo salvo que definas la variable de repositorio
 
 | Archivo | Contenido |
 |---|---|
+| `PLAN_MARKETPLACE.md` | **Plan de transformación a marketplace (reto 2 del hackathon)** |
+| `MIGRACION_HACKATHON.md` | Puesta en marcha sobre una base de datos Supabase nueva |
 | `MODULAR_ARCHITECTURE.md` | Límites entre módulos |
 | `SAAS_ARCHITECTURE.md` | Modelo multi-empresa |
 | `SUPABASE_SETUP.md` | Configuración de Supabase paso a paso |
