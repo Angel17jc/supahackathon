@@ -271,6 +271,7 @@ npm run db:prove    # Ejecuta las 15 pruebas de aislamiento contra la BD real
 | Archivo | Contenido |
 |---|---|
 | `DEMO.md` | Guion de 5 minutos para la demo |
+| `DESPLIEGUE.md` | Pasos de despliegue en Vercel |
 | `PLAN_MARKETPLACE.md` | Plan de construcción completo |
 | `MIGRACION_HACKATHON.md` | Puesta en marcha sobre una base nueva |
 
