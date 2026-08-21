@@ -1,0 +1,96 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Typecheck, test and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run check
+
+      - name: Test
+        run: npm test
+
+      # Vite inlines VITE_* at build time, so the same values the deployment
+      # uses are needed here for the build to be a meaningful check.
+      - name: Build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+      # Vercel runs the API under Node's native ESM resolver, which needs an
+      # explicit extension on every relative import. Missing one breaks the
+      # deployed function only, so nothing else in this job would catch it.
+      - name: Fail on extensionless relative imports
+        run: |
+          if grep -rnE "(from|import\()[[:space:]]*['\"](\.{1,2}/)[^'\"]*['\"]" backend shared api --include="*.ts" | grep -vE "\.js['\"]"; then
+            echo "The imports above need a .js extension."
+            exit 1
+          fi
+
+      - name: Fail if Tailwind produced no utility classes
+        run: |
+          CSS=$(find dist/public/assets -name '*.css' | head -1)
+          test -n "$CSS" || { echo "No stylesheet was emitted"; exit 1; }
+          SIZE=$(wc -c < "$CSS")
+          echo "Stylesheet: $CSS ($SIZE bytes)"
+          if [ "$SIZE" -lt 20000 ]; then
+            echo "Stylesheet is suspiciously small: Tailwind likely matched no source files."
+            echo "Check the content globs in tailwind.config.ts."
+            exit 1
+          fi
+
+  deploy:
+    name: Deploy to Vercel
+    needs: verify
+    # Dormant until the repository variable DEPLOY_VIA_ACTIONS is set to 'true'.
+    # Leave it unset to let Vercel's own Git integration deploy instead, and
+    # never enable both: they would deploy the same commit twice.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_VIA_ACTIONS == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull project settings and environment variables
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}

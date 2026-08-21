@@ -1,0 +1,25 @@
+name: Keep Supabase development project active
+
+on:
+  schedule:
+    - cron: "23 14 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  database-activity:
+    runs-on: ubuntu-latest
+    steps:
+      # Calls the deployed health endpoint, which queries Supabase server-side
+      # with the service role key. The anon key can no longer read any table:
+      # migration 006 revoked those privileges, which is what this workflow
+      # previously relied on. No credentials are needed here as a result.
+      - name: Perform a read-only database request
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+        run: |
+          test -n "$APP_URL" || { echo "Set the APP_URL repository variable."; exit 1; }
+          curl --fail --silent --show-error --retry 3 --retry-all-errors \
+            "$APP_URL/api/health/database"
