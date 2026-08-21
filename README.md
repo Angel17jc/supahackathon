@@ -1,19 +1,54 @@
-# Licorería Manager
+# ENVY Marketplace
 
-Sistema de gestión de inventario y fiados para licorerías, multi-empresa y desplegado como una sola aplicación en Vercel.
-
-Cada negocio (organización) ve únicamente sus propios datos. Un administrador de plataforma da de alta las empresas y sus usuarios; dentro de cada empresa los permisos se reparten entre propietario, encargado y cajero.
+Marketplace de barrio donde varias tiendas publican su catálogo, cualquiera navega sin cuenta y la sesión solo aparece cuando alguien quiere apartar un producto. Reto 2 del hackathon de Supabase: *Identidad y datos seguros*.
 
 ---
 
-## Qué hace
+## En una frase
 
-- **Inventario** — productos con costo, precio de venta, categoría, proveedor y nivel mínimo de stock, con alertas cuando algo baja del mínimo.
-- **Movimientos** — entradas, salidas y ajustes. Cada movimiento ajusta el stock y queda registrado con su motivo y su fecha.
-- **Fiados** — cuentas de crédito por cliente. Cada abono descuenta del saldo y la cuenta pasa a `partial` o `paid` sola.
-- **Catálogo** — categorías y proveedores, propios de cada empresa.
-- **Panel** — total de productos, valor del inventario, alertas de stock bajo y actividad de los últimos 7 días.
-- **Clientes** — alta de empresas y usuarios, reservado al administrador de plataforma.
+Una vitrina pública con aislamiento real por fila, por columna y por carpeta de Storage, demostrado con cinco ataques en vivo contra la propia base de datos.
+
+---
+
+## Cómo se cumple el reto
+
+| Lo que pide el enunciado | Cómo se cumple |
+|---|---|
+| Al menos dos roles | Tres: `comprador`, `vendedor` (owner/manager de una tienda), `platform_admin` |
+| Políticas RLS **por fila** | `reservations`: el comprador ve las suyas (`buyer_id = auth.uid()`), el vendedor ve las de sus tiendas (`is_active_organization_member(organization_id)`) |
+| Prueba en vivo de acceso denegado | Panel `/seguridad` con cinco ataques reales contra la base de datos |
+| Auth sirve al producto | Catálogo anónimo; la sesión se exige solo para apartar |
+| Storage sirve al producto | Sin imagen no hay publicación; cada tienda solo escribe en su carpeta |
+| Auditoría | `audit_log` append-only: ni la clave de servicio puede reescribirlo |
+
+### El argumento técnico: proteger una columna
+
+Un marketplace tiene cuatro tipos de dato ajeno a la vez:
+
+| Dato | Quién **no** debe verlo |
+|---|---|
+| El margen de una tienda (`cost_price`) | Anónimos, compradores y tiendas rivales |
+| Un apartado | Cualquiera salvo su comprador y la tienda dueña del producto |
+| Los apartados de una tienda | Las otras tiendas |
+| La carpeta de imágenes de una tienda | Las otras tiendas |
+
+`cost_price` es el precio al que la tienda compró. Si se filtra, un rival sabe cuánto bajar para hundirla.
+
+RLS protege filas, no columnas. Postgres protege columnas con `GRANT` por columna:
+
+```sql
+GRANT SELECT (id, name, description, selling_price, image_url, organization_id)
+  ON products TO anon, authenticated;
+```
+
+Desde el navegador con la clave pública:
+
+```js
+await supabase.from('products').select('name, selling_price')  // 40 filas
+await supabase.from('products').select('cost_price')           // permission denied
+```
+
+Misma tabla, misma consulta, filas sí y columna no.
 
 ---
 
@@ -22,197 +57,212 @@ Cada negocio (organización) ve únicamente sus propios datos. Un administrador 
 | Capa | Tecnología |
 |---|---|
 | Frontend | React 18, TypeScript, Vite 7, Tailwind CSS 3, wouter, TanStack Query |
-| Componentes | shadcn/ui sobre Radix, lucide-react, Recharts |
+| Componentes | shadcn/ui sobre Radix, lucide-react |
 | Backend | Express 5 sobre Node, desplegado como función serverless |
 | Datos | Supabase (PostgreSQL) con Row Level Security |
 | Autenticación | Supabase Auth (JWT), validado en el servidor |
 | Validación | Zod, con esquemas compartidos entre cliente y servidor |
 | Despliegue | Vercel — estáticos y API en el mismo proyecto |
-| CI/CD | GitHub Actions |
 
 ---
 
 ## Arquitectura
 
-El frontend y el backend se organizan por **módulo de negocio**, no por tipo de archivo. Cada módulo agrupa lo suyo: rutas, esquemas y consultas.
+El frontend y el backend se organizan por **módulo de negocio**. Cada módulo agrupa rutas, esquemas y consultas.
 
 ```
-api/
-  index.ts                  Punto de entrada serverless en Vercel
-
 backend/
-  app.ts                    Construye la app Express (compartida por el servidor local y Vercel)
-  index.ts                  Servidor local con Vite en desarrollo
+  app.ts                    Express app (servidor local y Vercel)
   auth.ts                   Autenticación y contexto de organización
   authorization.ts          Guardas por rol
-  db.ts                     Cliente Supabase con la clave secreta
-  errors.ts                 Traducción de errores a respuestas HTTP
-  storage.ts                Acceso a datos, siempre acotado a una organización
-  platform-service.ts       Alta de empresas y usuarios
+  db.ts                     Cliente Supabase con clave secreta
+  errors.ts                 Traducción de errores a HTTP
+  storage.ts                Acceso a datos acotado a organización
+  audit.ts                  Middleware y función de registro
   modules/
-    catalog/                Categorías y proveedores
-    credits/                Fiados
-    inventory/              Productos y movimientos
+    marketplace/            Catálogo público, apartados, auditoría
+    inventory/              Productos, movimientos, imágenes
     platform/               Administración de la plataforma
 
 frontend/src/
   App.tsx                   Rutas y guardas de sesión
-  lib/                      Cliente Supabase, sesión, cliente HTTP
-  pages/                    Login (landing), nueva contraseña, panel, 404
-  modules/                  Una carpeta por módulo, con su página y sus consultas
-  components/ui/            Componentes de interfaz
+  lib/                      Cliente Supabase, sesión, HTTP
+  pages/                    Login, panel, 404
+  modules/marketplace/      ShopPage (vitrina), SecurityPage (ataques)
+  modules/inventory/        Inventario del vendedor
   components/layout/        Barra lateral
 
-shared/
-  schema.ts                 Tablas, esquemas Zod y reglas compartidas
-  routes.ts                 Contrato de la API
-  tenancy.ts                Tipos de rol
-
 database/
-  schema.sql                Tablas base
-  credits.sql               Tablas de fiados
-  migrations/               Migraciones numeradas, se aplican en orden
+  migrations/               Migraciones numeradas
+    009_marketplace.sql      Drops, tablas nuevas, RLS, Storage
+    010_product_image_limits.sql  Límites de Storage
+
+shared/
+  schema.ts                 Tablas, esquemas Zod, reglas compartidas
+  tenancy.ts                Tipos de rol
 ```
-
-### Un solo despliegue
-
-Vercel sirve el frontend compilado como estáticos y ejecuta la misma app Express como función serverless en `/api/*`. No hace falta alojar el backend aparte.
-
-Dos detalles que conviene conocer antes de tocar el backend:
-
-- Vercel ejecuta la función con el **resolvedor ESM nativo de Node**. Todo import relativo necesita extensión `.js` y los alias de `tsconfig` no se resuelven. El CI falla si aparece un import relativo sin extensión.
-- Las variables `VITE_*` se **incrustan en el bundle del navegador** al compilar. El build aborta si `VITE_SUPABASE_ANON_KEY` contiene una clave secreta.
 
 ---
 
-## Seguridad
+## Modelo de datos
 
-El modelo parte de una idea: **el navegador no toca la base de datos**. El bundle solo usa Supabase para autenticarse; cualquier lectura o escritura pasa por la API de Express, que valida el token, resuelve la organización y aplica el rol.
+### Se crea para el marketplace
 
-**Aislamiento entre empresas.** Cada tabla lleva `organization_id`. `storage.ts` acota todas las consultas a la organización del contexto, y claves foráneas compuestas `(id, organization_id)` impiden a nivel de base de datos que una fila apunte a otra de una empresa distinta.
-
-**Row Level Security.** Activo en las nueve tablas y vistas. Los privilegios de tabla están revocados para `anon` y `authenticated`, así que la clave publicable no puede leer nada aunque quede expuesta — que es su naturaleza, va dentro del bundle.
-
-**Autenticación.** El token se valida en el servidor contra Supabase en cada petición. La pertenencia a la organización se comprueba en la base de datos, nunca a partir de un claim del token. Una organización suspendida queda sin acceso a la API.
-
-**Roles.**
-
-| Rol | Puede |
+| Tabla | Propósito |
 |---|---|
-| `platform_admin` | Todo, en cualquier empresa |
-| `owner` / `manager` | Leer y escribir productos, categorías, proveedores, movimientos y fiados |
-| `cashier` | Leer, registrar movimientos y cobrar fiados |
+| `profiles` | Identidad del comprador (no pertenece a ninguna tienda) |
+| `reservations` | Apartados con RLS por fila: dos titulares sobre la misma fila |
+| `audit_log` | Append-only con trigger que bloquea UPDATE, DELETE y TRUNCATE |
 
-**Operaciones atómicas.** Crear un movimiento, vender fiado y registrar un abono se ejecutan en funciones PostgreSQL con bloqueo de fila, así que dos cajas simultáneas no pueden dejar el stock inconsistente. Esas funciones solo son ejecutables por el rol de servicio.
+### Se conserva del inventario
 
-**Sesiones.** Viven en `sessionStorage`: se cierran al cerrar la pestaña y tras 30 minutos sin actividad. La caja suele ser una máquina compartida.
+`organizations` (ahora son tiendas), `organization_memberships`, `products` (con `is_published`), `movements`, `categories`.
 
-**Respuestas y registros.** Los errores internos no se devuelven al cliente. Los registros contienen la línea de la petición, nunca el cuerpo de la respuesta. Las respuestas de la API llevan `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy` y `Cache-Control: no-store`; el HTML añade una Content Security Policy desde `vercel.json`.
+### Se elimina
 
-**Claves.** `SUPABASE_SERVICE_ROLE_KEY` es una clave secreta (`sb_secret_…`) y solo existe en el servidor. `VITE_SUPABASE_ANON_KEY` es publicable (`sb_publishable_…`) y es pública por diseño.
+`suppliers`, `credit_accounts`, `credit_payments`, `customer_debts`, `create_credit_sale`, `register_credit_payment`.
+
+### La tabla clave: `reservations`
+
+```sql
+CREATE TABLE reservations (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_id      INTEGER NOT NULL,
+  organization_id UUID    NOT NULL,
+  buyer_id        UUID    NOT NULL REFERENCES auth.users(id),
+  quantity        INTEGER NOT NULL CHECK (quantity > 0),
+  status          VARCHAR(20) NOT NULL DEFAULT 'pending'
+                  CHECK (status IN ('pending', 'confirmed', 'rejected', 'cancelled')),
+  note            TEXT,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT reservations_product_organization_fkey
+    FOREIGN KEY (product_id, organization_id)
+    REFERENCES products(id, organization_id)
+);
+```
+
+Dos políticas, dos titulares sobre la misma fila:
+
+```sql
+-- El comprador ve las suyas, de cualquier tienda.
+CREATE POLICY reservations_select_buyer ON reservations
+  FOR SELECT TO authenticated
+  USING (buyer_id = auth.uid());
+
+-- La tienda ve las de sus productos, de cualquier comprador.
+CREATE POLICY reservations_select_seller ON reservations
+  FOR SELECT TO authenticated
+  USING (is_active_organization_member(organization_id));
+```
+
+---
+
+## Las cinco denegaciones
+
+Cada una es un fallo real de Postgres, no un `if` del frontend.
+
+| # | Ataque | Resultado |
+|---|---|---|
+| 1 | Anónimo pide `cost_price` | `permission denied for table products` |
+| 2 | Tienda B lee apartados de Tienda A | 0 filas |
+| 3 | Comprador B abre apartado de Comprador A | 0 filas |
+| 4 | Tienda B sube imagen a carpeta de Tienda A | Denegado por política de Storage |
+| 5 | Alguien borra una línea del `audit_log` | Excepción del trigger, incluso con la clave de servicio |
+
+---
+
+## Datos de la demo
+
+### Tiendas
+
+| Tienda | Productos | Categorías |
+|---|---|---|
+| Licorería El Faro | 10 | Cervezas, Destilados, Vinos |
+| Panadería La Espiga | 10 | Panes, Pastelería, Desayuno |
+| Ferretería Don Luis | 10 | Herramientas, Electricidad, Pintura |
+| Verdulería Sol | 10 | Frutas, Verduras, Granos |
+
+### Credenciales
+
+| Cuenta | Contraseña | Rol |
+|---|---|---|
+| `admin@demo.com` | `Secreta123` | `platform_admin` + owner de "Inventario existente" |
+| `cajero@demo.com` | `Secreta123` | `cashier` de "Tienda Norte" |
+| `ana@demo.com` | `Secreta123` | `comprador` |
+| `diego@demo.com` | `Secreta123` | `comprador` |
+
+Las tiendas adicionales usan sus propios correos (`faro@demo.com`, `espiga@demo.com`, etc.).
 
 ---
 
 ## Puesta en marcha
 
-Necesitas Node 20 o superior y un proyecto de Supabase.
-
 ```bash
 npm install
-cp .env.example .env      # y rellena los cuatro valores
-npm run dev               # http://localhost:5000
+cp .env.example .env      # rellena los cuatro valores
+npm run db:seed            # puebla la base con la demo
+npm run dev                # http://localhost:8080
 ```
 
 ### Variables de entorno
 
 ```
 SUPABASE_URL=https://tu-proyecto.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=sb_secret_...        # solo servidor
+SUPABASE_SERVICE_ROLE_KEY=sb_secret_...
 VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
-VITE_SUPABASE_ANON_KEY=sb_publishable_...      # va al navegador
+VITE_SUPABASE_ANON_KEY=sb_publishable_...
 ```
-
-Las encuentras en Supabase → Settings → API Keys.
 
 ### Base de datos
 
-En el SQL Editor de Supabase, en este orden:
+En el SQL Editor de Supabase, en orden:
 
 1. `database/schema.sql`
-2. `database/credits.sql`
-3. `database/migrations/001` … `007`, por número
-
-Las migraciones asumen la anterior aplicada. Haz copia de seguridad antes de las que mueven datos.
-
-### Autenticación en Supabase
-
-En **Authentication → URL Configuration**:
-
-- **Site URL** — la URL de tu despliegue
-- **Redirect URLs** — esa misma URL con `/**`
-
-Sin esto, el enlace de recuperación de contraseña lleva al sitio equivocado y Supabase **no avisa**: acepta el `redirect_to` y cae en silencio al Site URL.
-
-El servicio de correo integrado de Supabase está limitado a unos pocos envíos por hora y es para pruebas. Para producción, configura SMTP propio en **Authentication → SMTP Settings**.
+2. `database/migrations/009_marketplace.sql`
+3. `database/migrations/010_product_image_limits.sql`
 
 ---
 
 ## Scripts
 
 ```bash
-npm run dev       # Servidor de desarrollo con Vite, puerto 5000
-npm run build     # Compila frontend y backend a dist/
-npm start         # Ejecuta el build de producción
-npm run check     # Comprueba tipos
-npm test          # Ejecuta los tests
-npm run db:push   # Sincroniza el esquema con Drizzle
+npm run dev         # Servidor de desarrollo, puerto 8080
+npm run build       # Compila frontend y backend
+npm start           # Build de producción
+npm run check       # Comprueba tipos
+npm test            # Ejecuta los tests
+npm run db:seed     # Puebla la base con datos de demo
+npm run db:prove    # Ejecuta las 15 pruebas de aislamiento contra la BD real
 ```
 
 ---
 
 ## API
 
-Todas las rutas bajo `/api` exigen `Authorization: Bearer <token>`, salvo las de salud. Las que operan sobre datos de una empresa exigen además la cabecera `X-Organization-Id`.
+### Públicas (sin autenticación)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/catalog` | Productos publicados (filtro por tienda y búsqueda) |
+| GET | `/api/catalog/shops` | Lista de tiendas activas con conteo de productos |
+| GET | `/api/catalog/:id` | Producto individual |
+
+### Con autenticación
 
 | Método | Ruta | Rol mínimo |
 |---|---|---|
-| GET | `/api/health`, `/api/health/database` | público |
-| GET | `/api/organizations/me` | autenticado |
-| POST | `/api/account/password` | autenticado |
-| GET | `/api/products`, `/api/products/:id` | miembro |
-| POST, PUT, DELETE | `/api/products`, `/api/products/:id` | encargado |
-| GET | `/api/movements` | miembro |
-| POST | `/api/movements` | cajero |
-| GET | `/api/categories`, `/api/suppliers` (y `/:id`) | miembro |
-| POST, PUT, DELETE | `/api/categories`, `/api/suppliers` | encargado |
-| GET | `/api/credits`, `/api/credits/stats`, `/api/credits/customer/:nombre` | miembro |
-| POST | `/api/credits`, `/api/credits/payment` | cajero |
-| GET | `/api/stats` | miembro |
-| — | `/api/platform/*` | administrador de plataforma |
+| GET | `/api/reservations` | Comprador o vendedor (RLS decide qué ve) |
+| POST | `/api/reservations` | Comprador autenticado |
+| PATCH | `/api/reservations/:id` | Comprador (solo cancelar) o vendedor |
+| GET | `/api/audit` | Vendedor o platform_admin |
 
----
+### Gestión de inventario
 
-## Despliegue
-
-El proyecto está configurado para Vercel mediante `vercel.json`:
-
-- **Build** `vite build` · **Salida** `dist/public` · **Framework** Other
-- `/api/*` se reescribe a la función serverless; el resto sirve el SPA
-
-Configura las cuatro variables de entorno en el proyecto de Vercel **antes** del primer build: las `VITE_*` se incrustan al compilar, no se leen en tiempo de ejecución.
-
-### Integración continua
-
-`.github/workflows/ci-cd.yml` ejecuta en cada push y cada pull request: instalación, comprobación de tipos, tests y build. Además falla si:
-
-- la hoja de estilos generada baja de 20 kB, señal de que Tailwind no encuentra los archivos fuente;
-- aparece un import relativo sin extensión `.js`, que rompería la función en Vercel.
-
-Los tres guards nacieron de fallos reales que pasaban tipos, tests y build sin quejarse y solo se manifestaban en producción.
-
-El job de despliegue está inactivo salvo que definas la variable de repositorio `DEPLOY_VIA_ACTIONS` a `true`. Por defecto despliega la integración de Git de Vercel; activar ambos duplicaría los despliegues.
-
-`.github/workflows/supabase-keepalive.yml` llama a diario al endpoint de salud para que el proyecto de Supabase no se pause por inactividad. Usa la variable `APP_URL` y no necesita credenciales.
+| Método | Ruta | Rol mínimo |
+|---|---|---|
+| GET | `/api/products` | Miembro |
+| POST, PUT, DELETE | `/api/products` | Encargado |
+| POST | `/api/products/:id/image` | Encargado |
 
 ---
 
@@ -220,16 +270,9 @@ El job de despliegue está inactivo salvo que definas la variable de repositorio
 
 | Archivo | Contenido |
 |---|---|
-| `PLAN_MARKETPLACE.md` | **Plan de transformación a marketplace (reto 2 del hackathon)** |
-| `MIGRACION_HACKATHON.md` | Puesta en marcha sobre una base de datos Supabase nueva |
-| `MODULAR_ARCHITECTURE.md` | Límites entre módulos |
-| `SAAS_ARCHITECTURE.md` | Modelo multi-empresa |
-| `SUPABASE_SETUP.md` | Configuración de Supabase paso a paso |
-| `SCHEMAS.md` | Esquemas de datos |
-| `AUTH_SETUP.md` | Autenticación y roles |
-| `FIADOS_SETUP.md` | Sistema de fiados |
-| `DEPLOYMENT.md` | Notas de despliegue |
-| `TESTING.md` | Estrategia de pruebas |
+| `DEMO.md` | Guion de 5 minutos para la demo |
+| `PLAN_MARKETPLACE.md` | Plan de construcción completo |
+| `MIGRACION_HACKATHON.md` | Puesta en marcha sobre una base nueva |
 
 ---
 
