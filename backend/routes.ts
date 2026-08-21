@@ -1,12 +1,13 @@
 import type { Express } from "express";
-import { createServer, type Server } from "http";
+import { type Server } from "http";
 import { storage } from "./storage.js";
 import { supabase } from "./db.js";
+import { auditRequests } from "./audit.js";
 import { getAccessibleOrganizations, requireAuthenticatedUser, requireOrganizationContext, requireOrganizationRole, requirePlatformAdmin } from "./auth.js";
 import { registerCatalogRoutes } from "./modules/catalog/catalog-routes.js";
 import { registerInventoryRoutes } from "./modules/inventory/inventory-routes.js";
-import { registerCreditRoutes } from "./modules/credits/credit-routes.js";
 import { registerPlatformRoutes } from "./modules/platform/platform-routes.js";
+import { registerMarketplaceRoutes, registerPublicCatalogRoutes } from "./modules/marketplace/marketplace-routes.js";
 import { api } from "../shared/routes.js";
 import { updatePasswordRequestSchema } from "../shared/schema.js";
 
@@ -14,6 +15,10 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Antes de cualquier guardia: toda mutación y todo rechazo dejan rastro,
+  // incluidos los que se rechazan por falta de sesión.
+  app.use(auditRequests);
+
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
@@ -28,6 +33,15 @@ export async function registerRoutes(
 
     return res.json({ status: "ok", database: "reachable", timestamp: new Date().toISOString() });
   });
+
+  // La vitrina se monta antes del guardia de sesión: sin cuenta se navega el
+  // catálogo, y la sesión aparece solo cuando alguien quiere apartar algo.
+  registerPublicCatalogRoutes(app);
+
+  // Apartados y auditoría exigen sesión pero no organización. Un comprador no
+  // pertenece a ninguna tienda, así que el guardia de contexto lo dejaría fuera
+  // de su propia lista de apartados.
+  registerMarketplaceRoutes(app, { requireAuthenticatedUser });
 
   app.use("/api", requireAuthenticatedUser);
   app.get("/api/organizations/me", async (req, res) => {
@@ -55,7 +69,6 @@ export async function registerRoutes(
 
   registerCatalogRoutes(app, { requireManager, scopedStorage });
   registerInventoryRoutes(app, { requireManager, requireOperator, scopedStorage });
-  registerCreditRoutes(app, { requireOperator, scopedStorage });
 
   // Stats
   app.get(api.stats.get.path, async (req, res) => {

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, decimal, varchar, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, decimal, varchar, uuid, boolean, jsonb, bigserial } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -12,14 +12,7 @@ export const categories = pgTable("categories", {
   description: text("description"),
 });
 
-export const suppliers = pgTable("suppliers", {
-  id: serial("id").primaryKey(),
-  organizationId: uuid("organization_id").notNull().references(() => organizations.id),
-  name: text("name").notNull(),
-  contactInfo: text("contact_info"),
-  address: text("address"),
-});
-
+// Una organización es una tienda del marketplace.
 export const organizations = pgTable("organizations", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
@@ -49,9 +42,9 @@ export const products = pgTable("products", {
   costPrice: decimal("cost_price", { precision: 10, scale: 2 }).notNull(),
   sellingPrice: decimal("selling_price", { precision: 10, scale: 2 }).notNull(),
   categoryId: integer("category_id").references(() => categories.id),
-  supplierId: integer("supplier_id").references(() => suppliers.id),
   imageUrl: text("image_url"),
   minStockLevel: integer("min_stock_level").default(5),
+  isPublished: boolean("is_published").notNull().default(false),
 });
 
 export const movements = pgTable("movements", {
@@ -65,31 +58,40 @@ export const movements = pgTable("movements", {
   userId: varchar("user_id"), // Optional linkage to auth user
 });
 
-export const creditAccounts = pgTable("credit_accounts", {
-  id: serial("id").primaryKey(),
-  organizationId: uuid("organization_id").notNull().references(() => organizations.id),
-  customerName: text("customer_name").notNull(),
-  productId: integer("product_id").references(() => products.id).notNull(),
-  movementId: integer("movement_id").references(() => movements.id),
-  quantity: integer("quantity").notNull(),
-  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
-  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
-  paidAmount: decimal("paid_amount", { precision: 10, scale: 2 }).notNull().default('0'),
-  remainingAmount: decimal("remaining_amount", { precision: 10, scale: 2 }).notNull(),
-  status: varchar("status", { length: 20 }).notNull().default('pending'), // 'pending', 'partial', 'paid'
-  notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+// Un comprador no pertenece a ninguna tienda, así que su identidad vive aquí y
+// no en organization_memberships.
+export const profiles = pgTable("profiles", {
+  id: uuid("id").primaryKey(),
+  fullName: text("full_name").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const creditPayments = pgTable("credit_payments", {
-  id: serial("id").primaryKey(),
-  organizationId: uuid("organization_id").notNull().references(() => organizations.id),
-  creditAccountId: integer("credit_account_id").references(() => creditAccounts.id).notNull(),
-  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  paymentMethod: varchar("payment_method", { length: 50 }),
-  notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow(),
+// Cada fila tiene dos dueños legítimos: el comprador que la creó y la tienda
+// dueña del producto. Las políticas de la migración 009 son las que impiden que
+// la alcance cualquier otro.
+export const reservations = pgTable("reservations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  productId: integer("product_id").notNull(),
+  organizationId: uuid("organization_id").notNull(),
+  buyerId: uuid("buyer_id").notNull(),
+  quantity: integer("quantity").notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("pending"),
+  note: text("note"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const auditLog = pgTable("audit_log", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+  actorId: uuid("actor_id"),
+  actorEmail: text("actor_email"),
+  organizationId: uuid("organization_id"),
+  action: text("action").notNull(),
+  resource: text("resource").notNull(),
+  resourceId: text("resource_id"),
+  outcome: varchar("outcome", { length: 10 }).notNull(),
+  detail: jsonb("detail").notNull().default({}),
 });
 
 // === RELATIONS ===
@@ -98,18 +100,10 @@ export const productsRelations = relations(products, ({ one, many }) => ({
     fields: [products.categoryId],
     references: [categories.id],
   }),
-  supplier: one(suppliers, {
-    fields: [products.supplierId],
-    references: [suppliers.id],
-  }),
   movements: many(movements),
 }));
 
 export const categoriesRelations = relations(categories, ({ many }) => ({
-  products: many(products),
-}));
-
-export const suppliersRelations = relations(suppliers, ({ many }) => ({
   products: many(products),
 }));
 
@@ -120,33 +114,22 @@ export const movementsRelations = relations(movements, ({ one }) => ({
   }),
 }));
 
-export const creditAccountsRelations = relations(creditAccounts, ({ one, many }) => ({
+export const reservationsRelations = relations(reservations, ({ one }) => ({
   product: one(products, {
-    fields: [creditAccounts.productId],
+    fields: [reservations.productId],
     references: [products.id],
   }),
-  movement: one(movements, {
-    fields: [creditAccounts.movementId],
-    references: [movements.id],
-  }),
-  payments: many(creditPayments),
-}));
-
-export const creditPaymentsRelations = relations(creditPayments, ({ one }) => ({
-  creditAccount: one(creditAccounts, {
-    fields: [creditPayments.creditAccountId],
-    references: [creditAccounts.id],
+  shop: one(organizations, {
+    fields: [reservations.organizationId],
+    references: [organizations.id],
   }),
 }));
 
 // === BASE SCHEMAS ===
 // Tenant identity is resolved exclusively on the server from the authenticated request.
 export const insertCategorySchema = createInsertSchema(categories).omit({ id: true, organizationId: true });
-export const insertSupplierSchema = createInsertSchema(suppliers).omit({ id: true, organizationId: true });
 export const insertProductSchema = createInsertSchema(products).omit({ id: true, organizationId: true });
 export const insertMovementSchema = createInsertSchema(movements).omit({ id: true, organizationId: true, createdAt: true });
-export const insertCreditAccountSchema = createInsertSchema(creditAccounts).omit({ id: true, organizationId: true, createdAt: true, updatedAt: true });
-export const insertCreditPaymentSchema = createInsertSchema(creditPayments).omit({ id: true, organizationId: true, createdAt: true });
 
 export const createCategoryRequestSchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -155,54 +138,33 @@ export const createCategoryRequestSchema = z.object({
 
 export const updateCategoryRequestSchema = createCategoryRequestSchema.partial();
 
-export const createSupplierRequestSchema = z.object({
-  name: z.string().trim().min(2).max(120),
-  contactInfo: z.string().trim().max(255).nullable().optional(),
-  address: z.string().trim().max(500).nullable().optional(),
-});
-
-export const updateSupplierRequestSchema = createSupplierRequestSchema.partial();
-
 // === EXPLICIT API CONTRACT TYPES ===
 
 // Base types
 export type Category = typeof categories.$inferSelect;
-export type Supplier = typeof suppliers.$inferSelect;
 export type Organization = typeof organizations.$inferSelect;
 export type OrganizationMembership = typeof organizationMemberships.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Movement = typeof movements.$inferSelect;
-export type CreditAccount = typeof creditAccounts.$inferSelect;
-export type CreditPayment = typeof creditPayments.$inferSelect;
+export type Profile = typeof profiles.$inferSelect;
+export type Reservation = typeof reservations.$inferSelect;
+export type AuditEntry = typeof auditLog.$inferSelect;
 
 export type InsertCategory = z.infer<typeof insertCategorySchema>;
-export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type InsertMovement = z.infer<typeof insertMovementSchema>;
-export type InsertCreditAccount = z.infer<typeof insertCreditAccountSchema>;
-export type InsertCreditPayment = z.infer<typeof insertCreditPaymentSchema>;
 
-// Extended types for frontend display
 export type ProductWithDetails = Product & {
   category?: Category | null;
-  supplier?: Supplier | null;
 };
 
 export type MovementWithProduct = Movement & {
   product?: Product | null;
 };
 
-export type CreditAccountWithDetails = CreditAccount & {
-  product?: Product | null;
-  payments?: CreditPayment[];
-};
-
 // Request types
 export type CreateCategoryRequest = z.infer<typeof createCategoryRequestSchema>;
 export type UpdateCategoryRequest = z.infer<typeof updateCategoryRequestSchema>;
-
-export type CreateSupplierRequest = z.infer<typeof createSupplierRequestSchema>;
-export type UpdateSupplierRequest = z.infer<typeof updateSupplierRequestSchema>;
 
 export type CreateProductRequest = InsertProduct;
 export type UpdateProductRequest = Partial<InsertProduct>;
@@ -216,22 +178,57 @@ export const createMovementRequestSchema = z.object({
   reason: z.string().trim().max(500).nullable().optional(),
 });
 
-export const createCreditAccountRequestSchema = z.object({
-  customerName: z.string().trim().min(2).max(120),
+// === MARKETPLACE ===
+
+export const reservationStatuses = ["pending", "confirmed", "rejected", "cancelled"] as const;
+export type ReservationStatus = (typeof reservationStatuses)[number];
+
+// La tienda no viaja en la petición. Se deduce del producto en el servidor,
+// porque aceptarla del cliente permitiría atribuir un apartado a un tercero.
+export const createReservationRequestSchema = z.object({
   productId: z.coerce.number().int().positive(),
-  quantity: z.coerce.number().int().positive(),
-  notes: z.string().trim().max(500).nullable().optional(),
+  quantity: z.coerce.number().int().positive().max(99),
+  note: z.string().trim().max(280).nullable().optional(),
 });
 
-export const createCreditPaymentRequestSchema = z.object({
-  creditAccountId: z.coerce.number().int().positive(),
-  amount: z.coerce.number().positive().max(1_000_000).transform((amount) => amount.toFixed(2)),
-  paymentMethod: z.string().trim().min(1).max(50).nullable().optional(),
-  notes: z.string().trim().max(500).nullable().optional(),
+export const updateReservationRequestSchema = z.object({
+  status: z.enum(reservationStatuses),
 });
 
-export type CreateCreditAccountRequest = z.infer<typeof createCreditAccountRequestSchema>;
-export type CreateCreditPaymentRequest = z.infer<typeof createCreditPaymentRequestSchema>;
+export type CreateReservationRequest = z.infer<typeof createReservationRequestSchema>;
+export type UpdateReservationRequest = z.infer<typeof updateReservationRequestSchema>;
+
+// Lo que ve la vitrina. costPrice no aparece por ninguna parte, igual que el
+// privilegio de la migración 009 tampoco lo concede: el tipo y la base dicen lo
+// mismo, así que un descuido en el servidor no puede filtrarlo por accidente.
+export interface CatalogProduct {
+  id: number;
+  name: string;
+  description: string | null;
+  sku: string | null;
+  quantity: number;
+  sellingPrice: string;
+  imageUrl: string | null;
+  categoryName: string | null;
+  shopId: string;
+  shopName: string;
+  shopSlug: string;
+}
+
+export interface ReservationWithContext {
+  id: string;
+  productId: number;
+  organizationId: string;
+  buyerId: string;
+  quantity: number;
+  status: ReservationStatus;
+  note: string | null;
+  createdAt: string;
+  productName: string;
+  productImageUrl: string | null;
+  shopName: string;
+  buyerName: string | null;
+}
 
 // Stats types
 export interface DashboardStats {
@@ -240,12 +237,6 @@ export interface DashboardStats {
   lowStockCount: number;
   recentMovements: MovementWithProduct[];
   weeklyActivity: Array<{ date: string; label: string; inbound: number; outbound: number }>;
-}
-
-export interface CreditsStats {
-  totalDebt: number;
-  totalCustomers: number;
-  pendingAccounts: number;
 }
 
 // Account password rules. Declared here so the browser can give live feedback

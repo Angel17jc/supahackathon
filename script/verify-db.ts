@@ -16,35 +16,24 @@ import "dotenv/config";
 import { createClient } from "@supabase/supabase-js";
 import { normalizeSupabaseUrl } from "../shared/supabase-url.js";
 
-const tables = [
-  "organizations",
-  "organization_memberships",
-  "categories",
-  "suppliers",
-  "products",
-  "movements",
-  "credit_accounts",
-  "credit_payments",
-] as const;
+// Lo que sigue cerrado al navegador. El catálogo ya no está en esta lista: se
+// abrió a propósito en la migración 009, y comprobarlo aquí daría un falso
+// negativo cada vez.
+const privateTables = ["organization_memberships", "profiles", "reservations", "audit_log"] as const;
+
+// Lo que la vitrina necesita que sea legible sin cuenta.
+const publicTables = ["products", "categories", "organizations"] as const;
 
 // PostgREST resuelve las funciones por nombre Y aridad, asi que una llamada sin
-// argumentos responde "no existe" aunque la funcion este creada. Cada sonda usa
-// la firma completa con una organizacion inexistente: las tres validan y lanzan
-// P0002 antes de tocar una sola fila, asi que comprobar no escribe nada.
+// argumentos responde "no existe" aunque la funcion este creada. La sonda usa la
+// firma completa con una organizacion inexistente: valida y lanza P0002 antes de
+// tocar una sola fila, asi que comprobar no escribe nada.
 const missingOrganization = "00000000-0000-0000-0000-000000000000";
 
 const rpcProbes = [
   {
     name: "create_inventory_movement",
     args: { p_organization_id: missingOrganization, p_product_id: -1, p_type: "IN", p_quantity: 1 },
-  },
-  {
-    name: "create_credit_sale",
-    args: { p_organization_id: missingOrganization, p_product_id: -1, p_customer_name: "sonda", p_quantity: 1 },
-  },
-  {
-    name: "register_credit_payment",
-    args: { p_organization_id: missingOrganization, p_credit_account_id: -1, p_amount: 1 },
   },
 ] as const;
 
@@ -116,7 +105,7 @@ async function main() {
   const anonymous = createClient(browserUrl, anonKey, { auth: { persistSession: false } });
 
   console.log("\n2. Esquema (clave de servicio)");
-  for (const table of tables) {
+  for (const table of [...privateTables, ...publicTables]) {
     const { count, error } = await service.from(table).select("*", { count: "exact", head: true });
     if (error) fail(`${table}: ${error.message}`);
     else pass(`${table}: ${count ?? 0} filas`);
@@ -134,16 +123,43 @@ async function main() {
     }
   }
 
-  console.log("\n4. Acceso denegado con la clave publica");
-  for (const table of tables) {
+  console.log("\n4. Lo que la clave publica alcanza, y lo que no");
+  // La comprobacion dejo de ser "todo cerrado". Un marketplace necesita que el
+  // catalogo se lea sin cuenta, asi que lo que hay que verificar es que este
+  // abierto exactamente lo previsto y nada mas.
+  for (const table of privateTables) {
     const { data, error } = await anonymous.from(table).select("*").limit(1);
     if (error) {
-      pass(`${table}: bloqueada (${error.message})`);
+      pass(`${table}: cerrada (${error.message})`);
     } else if (!data || data.length === 0) {
       pass(`${table}: sin filas visibles`);
     } else {
       fail(`${table}: EXPUESTA, devolvio ${data.length} fila(s) sin autenticacion`);
     }
+  }
+
+  const catalog = await anonymous.from("products").select("name, selling_price").limit(5);
+  if (catalog.error || !catalog.data?.length) {
+    fail(`La vitrina no se lee sin cuenta: ${catalog.error?.message ?? "0 productos"}`);
+  } else {
+    pass(`products: ${catalog.data.length} productos visibles sin cuenta (asi debe ser)`);
+  }
+
+  // El precio al que la tienda compro. Filtrado, un competidor sabe cuanto bajar
+  // para hundirla, y ninguna politica de filas lo protege: es un privilegio de
+  // columna.
+  const margin = await anonymous.from("products").select("cost_price").limit(1);
+  if (margin.error) {
+    pass(`cost_price: denegado (${margin.error.message})`);
+  } else {
+    fail(`cost_price: EXPUESTO, ${JSON.stringify(margin.data)}`);
+  }
+
+  const everything = await anonymous.from("products").select("*").limit(1);
+  if (everything.error) {
+    pass(`select *: denegado (${everything.error.message})`);
+  } else {
+    fail("select *: EXPUESTO, el privilegio por columna no esta aplicado");
   }
 
   console.log("\n5. Cuentas disponibles");

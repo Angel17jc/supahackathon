@@ -9,8 +9,6 @@ import Dashboard from "@/pages/Dashboard";
 import Inventory from "@/modules/inventory/products/InventoryPage";
 import Movements from "@/modules/inventory/movements/MovementsPage";
 import Categories from "@/modules/catalog/categories/CategoriesPage";
-import Suppliers from "@/modules/catalog/suppliers/SuppliersPage";
-import Credits from "@/modules/credits/CreditsPage";
 import Platform from "@/modules/platform/PlatformPage";
 import Login from "@/pages/Login";
 import ResetPassword from "@/pages/ResetPassword";
@@ -21,8 +19,6 @@ const legacyPathRedirects: Record<string, string> = {
   "/inventory": "/inventario",
   "/movements": "/movimientos",
   "/categories": "/categorias",
-  "/suppliers": "/proveedores",
-  "/credits": "/fiados",
   "/platform": "/clientes",
 };
 
@@ -78,8 +74,6 @@ function Router() {
       <Route path="/inventario" component={Inventory} />
       <Route path="/movimientos" component={Movements} />
       <Route path="/categorias" component={Categories} />
-      <Route path="/proveedores" component={Suppliers} />
-      <Route path="/fiados" component={Credits} />
       {role === "platform_admin" && <Route path="/clientes" component={Platform} />}
 
       <Route component={NotFound} />

@@ -9,18 +9,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { insertProductSchema } from "@shared/schema";
 import { useCreateProduct, useUpdateProduct } from "@/hooks/use-products";
 import { useCategories } from "@/hooks/use-categories";
-import { useSuppliers } from "@/hooks/use-suppliers";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
 
 // Extend schema for form validation to handle string inputs for numbers
 const formSchema = insertProductSchema.extend({
   quantity: z.coerce.number().min(0),
+  isPublished: z.boolean().optional(),
   minStockLevel: z.coerce.number().min(0),
   costPrice: z.coerce.number().min(0),
   sellingPrice: z.coerce.number().min(0),
   categoryId: z.coerce.number().optional(),
-  supplierId: z.coerce.number().optional(),
 });
 
 type ProductFormValues = z.infer<typeof formSchema>;
@@ -33,7 +32,6 @@ interface ProductModalProps {
 
 export function ProductModal({ open, onOpenChange, product }: ProductModalProps) {
   const { data: categories } = useCategories();
-  const { data: suppliers } = useSuppliers();
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
 
@@ -66,7 +64,6 @@ export function ProductModal({ open, onOpenChange, product }: ProductModalProps)
         sellingPrice: Number(product.sellingPrice),
         imageUrl: product.imageUrl || "",
         categoryId: product.categoryId,
-        supplierId: product.supplierId,
       });
     } else {
       form.reset({
@@ -165,20 +162,19 @@ export function ProductModal({ open, onOpenChange, product }: ProductModalProps)
 
               <FormField
                 control={form.control}
-                name="supplierId"
+                name="isPublished"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Proveedor</FormLabel>
-                    <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value ? String(field.value) : undefined}>
+                    <FormLabel>Vitrina</FormLabel>
+                    <Select onValueChange={(val) => field.onChange(val === "si")} value={field.value ? "si" : "no"}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar..." />
+                          <SelectValue />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {suppliers?.map((sup) => (
-                          <SelectItem key={sup.id} value={String(sup.id)}>{sup.name}</SelectItem>
-                        ))}
+                        <SelectItem value="si">Publicado</SelectItem>
+                        <SelectItem value="no">Borrador</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

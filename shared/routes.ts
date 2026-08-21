@@ -1,16 +1,16 @@
 import { z } from 'zod';
-import { 
+import {
   createCategoryRequestSchema,
-  createSupplierRequestSchema,
   updateCategoryRequestSchema,
-  updateSupplierRequestSchema,
-  insertProductSchema, 
+  insertProductSchema,
   insertMovementSchema,
+  createReservationRequestSchema,
+  updateReservationRequestSchema,
   products,
   categories,
-  suppliers,
   movements
 } from './schema.js';
+import type { CatalogProduct, ReservationWithContext } from './schema.js';
 
 // ============================================
 // SHARED ERROR SCHEMAS
@@ -76,56 +76,12 @@ export const api = {
       },
     },
   },
-  suppliers: {
-    list: {
-      method: 'GET' as const,
-      path: '/api/suppliers',
-      responses: {
-        200: z.array(z.custom<typeof suppliers.$inferSelect>()),
-      },
-    },
-    get: {
-      method: 'GET' as const,
-      path: '/api/suppliers/:id',
-      responses: {
-        200: z.custom<typeof suppliers.$inferSelect>(),
-        404: errorSchemas.notFound,
-      },
-    },
-    create: {
-      method: 'POST' as const,
-      path: '/api/suppliers',
-      input: createSupplierRequestSchema,
-      responses: {
-        201: z.custom<typeof suppliers.$inferSelect>(),
-        400: errorSchemas.validation,
-      },
-    },
-    update: {
-      method: 'PUT' as const,
-      path: '/api/suppliers/:id',
-      input: updateSupplierRequestSchema,
-      responses: {
-        200: z.custom<typeof suppliers.$inferSelect>(),
-        400: errorSchemas.validation,
-        404: errorSchemas.notFound,
-      },
-    },
-    delete: {
-      method: 'DELETE' as const,
-      path: '/api/suppliers/:id',
-      responses: {
-        204: z.void(),
-        404: errorSchemas.notFound,
-      },
-    },
-  },
   products: {
     list: {
       method: 'GET' as const,
       path: '/api/products',
       responses: {
-        200: z.array(z.custom<typeof products.$inferSelect & { category: typeof categories.$inferSelect | null, supplier: typeof suppliers.$inferSelect | null }>()),
+        200: z.array(z.custom<typeof products.$inferSelect & { category: typeof categories.$inferSelect | null }>()),
       },
     },
     get: {
@@ -182,6 +138,77 @@ export const api = {
       },
     },
   },
+  catalog: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/catalog',
+      responses: {
+        200: z.array(z.custom<CatalogProduct>()),
+      },
+    },
+    get: {
+      method: 'GET' as const,
+      path: '/api/catalog/:id',
+      responses: {
+        200: z.custom<CatalogProduct>(),
+        404: errorSchemas.notFound,
+      },
+    },
+    shops: {
+      method: 'GET' as const,
+      path: '/api/catalog/shops',
+      responses: {
+        200: z.array(z.object({ id: z.string(), name: z.string(), slug: z.string(), productCount: z.number() })),
+      },
+    },
+  },
+  reservations: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/reservations',
+      responses: {
+        200: z.array(z.custom<ReservationWithContext>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/reservations',
+      input: createReservationRequestSchema,
+      responses: {
+        201: z.custom<ReservationWithContext>(),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      },
+    },
+    update: {
+      method: 'PATCH' as const,
+      path: '/api/reservations/:id',
+      input: updateReservationRequestSchema,
+      responses: {
+        200: z.custom<ReservationWithContext>(),
+        403: errorSchemas.notFound,
+        404: errorSchemas.notFound,
+      },
+    },
+  },
+  audit: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/audit',
+      responses: {
+        200: z.array(z.object({
+          id: z.number(),
+          occurredAt: z.string(),
+          actorEmail: z.string().nullable(),
+          action: z.string(),
+          resource: z.string(),
+          resourceId: z.string().nullable(),
+          outcome: z.string(),
+          detail: z.record(z.unknown()),
+        })),
+      },
+    },
+  },
   stats: {
     get: {
       method: 'GET' as const,
@@ -219,8 +246,8 @@ export function buildUrl(path: string, params?: Record<string, string | number>)
 // ============================================
 export type CreateCategoryRequest = z.infer<typeof api.categories.create.input>;
 export type UpdateCategoryRequest = z.infer<typeof api.categories.update.input>;
-export type CreateSupplierRequest = z.infer<typeof api.suppliers.create.input>;
-export type UpdateSupplierRequest = z.infer<typeof api.suppliers.update.input>;
 export type CreateProductRequest = z.infer<typeof api.products.create.input>;
 export type UpdateProductRequest = z.infer<typeof api.products.update.input>;
 export type CreateMovementRequest = z.infer<typeof api.movements.create.input>;
+export type CreateReservationRequest = z.infer<typeof api.reservations.create.input>;
+export type UpdateReservationRequest = z.infer<typeof api.reservations.update.input>;
