@@ -1,7 +1,8 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useStats } from "@/hooks/use-movements";
 import { StatCard } from "@/components/ui/StatCard";
-import { Package, DollarSign, AlertTriangle, ArrowRightLeft } from "lucide-react";
+import { Package, DollarSign, AlertTriangle, ArrowRightLeft, Eye } from "lucide-react";
+import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { format } from "date-fns";
@@ -43,8 +44,16 @@ export default function Dashboard() {
               <h1 className="text-4xl font-bold text-foreground font-display mb-2">Panel de Control</h1>
               <p className="text-muted-foreground">Bienvenido de nuevo, resumen de tu negocio.</p>
             </div>
-            <div className="px-4 py-2 bg-primary/10 rounded-full text-primary border border-primary/20 text-sm font-medium">
-              {format(new Date(), "dd 'de' MMMM, yyyy", { locale: es })}
+            <div className="flex items-center gap-3">
+              <Link href="/inventario">
+                <button className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all shadow-md shadow-primary/20 text-sm font-medium">
+                  <Eye className="w-4 h-4" />
+                  Ver Productos
+                </button>
+              </Link>
+              <div className="px-4 py-2 bg-primary/10 rounded-full text-primary border border-primary/20 text-sm font-medium">
+                {format(new Date(), "dd 'de' MMMM, yyyy", { locale: es })}
+              </div>
             </div>
           </div>
 

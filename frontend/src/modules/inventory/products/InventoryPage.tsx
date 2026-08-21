@@ -4,7 +4,8 @@ import { useProducts, useDeleteProduct } from "@/modules/inventory/products/prod
 import { ProductModal } from "./components/ProductModal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Edit2, Trash2, Package } from "lucide-react";
+import { Search, Plus, Edit2, Trash2, Package, LayoutDashboard } from "lucide-react";
+import { Link } from "wouter";
 import { Loader2 } from "lucide-react";
 import {
   Table,
@@ -57,13 +58,21 @@ export default function Inventory() {
               <h1 className="text-3xl font-bold font-display text-foreground mb-2">Inventario</h1>
               <p className="text-muted-foreground">Gestiona tu catálogo de productos.</p>
             </div>
-            <Button 
-              onClick={() => { setEditingProduct(null); setIsModalOpen(true); }}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Nuevo Producto
-            </Button>
+            <div className="flex items-center gap-3">
+              <Link href="/panel">
+                <button className="flex items-center gap-2 px-4 py-2.5 border border-border rounded-xl hover:bg-primary/5 transition-all text-sm font-medium text-muted-foreground hover:text-foreground">
+                  <LayoutDashboard className="w-4 h-4" />
+                  Volver al Panel
+                </button>
+              </Link>
+              <Button 
+                onClick={() => { setEditingProduct(null); setIsModalOpen(true); }}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Nuevo Producto
+              </Button>
+            </div>
           </div>
 
           <div className="glass-panel rounded-2xl p-6 space-y-6">
