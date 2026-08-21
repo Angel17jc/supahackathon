@@ -23,7 +23,7 @@ export function StatCard({ title, value, icon: Icon, trend, trendUp, className, 
       <div className="flex items-start justify-between relative z-10">
         <div>
           <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
-          <h3 className="text-3xl font-bold font-display text-white tracking-tight">{value}</h3>
+          <h3 className="text-3xl font-bold font-display text-foreground tracking-tight">{value}</h3>
           
           {trend && (
             <div className="flex items-center mt-2 gap-2">

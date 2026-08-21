@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Package, Tag, ArrowRightLeft, Store, Shield, Building2, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, Tag, ArrowRightLeft, Store, Building2, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 
@@ -8,7 +8,6 @@ const menuItems = [
   { icon: Package, label: "Inventario", href: "/inventario" },
   { icon: Tag, label: "Categorías", href: "/categorias" },
   { icon: ArrowRightLeft, label: "Movimientos", href: "/movimientos" },
-  { icon: Shield, label: "Seguridad", href: "/seguridad" },
 ];
 
 export function Sidebar() {
@@ -16,14 +15,14 @@ export function Sidebar() {
   const { activeOrganization, organizations, setActiveOrganization, role, signOut, user } = useAuth();
 
   return (
-    <div className="flex h-screen w-64 flex-col bg-card border-r border-border/50 text-foreground shadow-2xl sticky top-0">
+    <div className="flex h-screen w-64 flex-col bg-card border-r border-border/50 text-foreground shadow-xl sticky top-0">
       {/* Brand */}
       <div className="flex items-center gap-3 px-6 py-8 border-b border-border/30">
         <div className="bg-primary/20 p-2 rounded-xl ring-1 ring-primary/50">
           <Store className="w-8 h-8 text-primary" />
         </div>
         <div>
-          <h1 className="text-xl font-bold font-display tracking-wide text-white">ENVY</h1>
+          <h1 className="text-xl font-bold font-display tracking-wide text-foreground">ENVY</h1>
           <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Marketplace</p>
         </div>
       </div>
@@ -45,7 +44,7 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
         {role === "platform_admin" && (
-          <Link href="/clientes"><button className={cn("w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all", location === "/clientes" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-white/5 hover:text-white")}><Building2 className="w-5 h-5" /><span className="font-medium text-sm">Clientes</span></button></Link>
+          <Link href="/clientes"><button className={cn("w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all", location === "/clientes" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-primary/5 hover:text-foreground")}><Building2 className="w-5 h-5" /><span className="font-medium text-sm">Clientes</span></button></Link>
         )}
         {menuItems.map((item) => {
           const isActive = location === item.href;
@@ -56,7 +55,7 @@ export function Sidebar() {
                   "w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 group",
                   isActive
                     ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                    : "text-muted-foreground hover:bg-white/5 hover:text-white"
+                    : "text-muted-foreground hover:bg-primary/5 hover:text-foreground"
                 )}
               >
                 <item.icon className={cn("w-5 h-5 transition-transform group-hover:scale-110", isActive && "text-primary-foreground")} />
@@ -70,7 +69,7 @@ export function Sidebar() {
       {/* Footer info */}
       <div className="p-6 border-t border-border/30 bg-background/30 backdrop-blur-sm">
         <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
-        <button onClick={() => void signOut()} className="mt-3 flex w-full items-center justify-center gap-2 text-xs text-muted-foreground transition-colors hover:text-white">
+        <button onClick={() => void signOut()} className="mt-3 flex w-full items-center justify-center gap-2 text-xs text-muted-foreground transition-colors hover:text-foreground">
           <LogOut className="h-4 w-4" /> Cerrar sesión
         </button>
         <p className="text-xs text-center text-muted-foreground">© 2026 ENVY Marketplace</p>

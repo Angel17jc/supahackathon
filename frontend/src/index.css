@@ -5,36 +5,36 @@
 @tailwind utilities;
 
 :root {
-  /* Elegant Dark Theme Palette (Deep Blue/Gold) */
-  --background: 222 47% 11%;
-  --foreground: 210 40% 98%;
+  /* Soft Pastel Theme — clean, bright, marketplace-friendly */
+  --background: 0 0% 99%;
+  --foreground: 220 15% 15%;
 
-  --card: 222 47% 13%;
-  --card-foreground: 210 40% 98%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 15% 15%;
 
-  --popover: 222 47% 11%;
-  --popover-foreground: 210 40% 98%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 15% 15%;
 
-  --primary: 43 96% 64%; /* Gold */
-  --primary-foreground: 222 47% 11%;
+  --primary: 262 60% 65%; /* Soft violet */
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 217 33% 17%;
-  --secondary-foreground: 210 40% 98%;
+  --secondary: 220 14% 96%;
+  --secondary-foreground: 220 15% 25%;
 
-  --muted: 217 33% 17%;
-  --muted-foreground: 215 20% 65%;
+  --muted: 220 14% 96%;
+  --muted-foreground: 220 10% 50%;
 
-  --accent: 43 96% 64%;
-  --accent-foreground: 222 47% 11%;
+  --accent: 160 50% 60%; /* Mint / teal */
+  --accent-foreground: 0 0% 100%;
 
-  --destructive: 0 62% 30%;
-  --destructive-foreground: 210 40% 98%;
+  --destructive: 0 72% 55%;
+  --destructive-foreground: 0 0% 100%;
 
-  --border: 217 33% 20%;
-  --input: 217 33% 20%;
-  --ring: 43 96% 64%;
+  --border: 220 14% 92%;
+  --input: 220 14% 92%;
+  --ring: 262 60% 65%;
 
-  --radius: 0.75rem;
+  --radius: 1rem;
 
   --font-display: 'Playfair Display', serif;
   --font-body: 'Inter', sans-serif;
@@ -56,30 +56,18 @@
 
 @layer utilities {
   .glass-panel {
-    @apply bg-card/80 backdrop-blur-md border border-white/5 shadow-xl;
-  }
-  
-  .text-gold {
-    @apply text-primary;
-  }
-  
-  .bg-gold-gradient {
-    @apply bg-gradient-to-br from-primary to-amber-600;
-  }
-
-  .premium-shadow {
-    box-shadow: 0 0 40px -10px rgba(0, 0, 0, 0.5);
+    @apply bg-card/80 backdrop-blur-md border border-white shadow-xl;
   }
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar — light & subtle */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  @apply bg-secondary/50;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-primary/30 rounded-full hover:bg-primary/50 transition-colors;
+  @apply bg-primary/20 rounded-full hover:bg-primary/40 transition-colors;
 }

@@ -54,7 +54,7 @@ export default function Inventory() {
           
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div>
-              <h1 className="text-3xl font-bold font-display text-white mb-2">Inventario</h1>
+              <h1 className="text-3xl font-bold font-display text-foreground mb-2">Inventario</h1>
               <p className="text-muted-foreground">Gestiona tu catálogo de productos.</p>
             </div>
             <Button 
@@ -86,7 +86,7 @@ export default function Inventory() {
                 <Table>
                   <TableHeader className="bg-muted/50">
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="text-white font-bold">Producto</TableHead>
+                      <TableHead className="text-foreground font-bold">Producto</TableHead>
                       <TableHead>Categoría</TableHead>
                       <TableHead>SKU</TableHead>
                       <TableHead className="text-right">Stock</TableHead>
@@ -106,10 +106,10 @@ export default function Inventory() {
                       </TableRow>
                     ) : (
                       filteredProducts?.map((product) => (
-                        <TableRow key={product.id} className="hover:bg-white/5">
+                        <TableRow key={product.id} className="hover:bg-primary/5">
                           <TableCell className="font-medium">
                             <div>
-                              <p className="text-white">{product.name}</p>
+                              <p className="text-foreground">{product.name}</p>
                               {product.minStockLevel && product.quantity <= product.minStockLevel && (
                                 <Badge variant="destructive" className="mt-1 text-[10px] px-1.5 py-0 h-auto">Stock Bajo</Badge>
                               )}
@@ -118,7 +118,7 @@ export default function Inventory() {
                           <TableCell>{product.category?.name || <span className="text-muted-foreground italic">Sin categoría</span>}</TableCell>
                           <TableCell className="font-mono text-sm text-muted-foreground">{product.sku || '-'}</TableCell>
                           <TableCell className="text-right">
-                            <span className={product.quantity === 0 ? "text-red-400 font-bold" : "text-white font-medium"}>
+                            <span className={product.quantity === 0 ? "text-red-400 font-bold" : "text-foreground font-medium"}>
                               {product.quantity}
                             </span>
                           </TableCell>
@@ -165,7 +165,7 @@ export default function Inventory() {
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogTitle className="text-foreground">¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción no se puede deshacer. Esto eliminará permanentemente el producto y su historial.
             </AlertDialogDescription>

@@ -1,11 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, ArrowRightLeft, CheckCircle2, Eye, EyeOff, Loader2, PackageSearch, ShieldCheck, Store } from "lucide-react";
+import { ArrowLeft, ArrowRightLeft, CheckCircle2, Eye, EyeOff, Loader2, PackageSearch, ShieldCheck, Store, UserPlus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-type Mode = "login" | "forgot";
+type Mode = "login" | "register" | "forgot";
 
 const passwordResetPath = "/restablecer-contrasena?reset=1";
 
@@ -42,12 +42,16 @@ function getAuthErrorMessage(error: { message: string; status?: number }) {
     return "No fue posible enviar el correo. Inténtalo de nuevo en unos minutos.";
   }
 
+  if (message.includes("already registered") || message.includes("already been registered")) {
+    return "Este correo ya está registrado. Inicia sesión.";
+  }
+
   return "No fue posible completar la solicitud. Verifica los datos e inténtalo nuevamente.";
 }
 
 export default function Login() {
   const [location, setLocation] = useLocation();
-  const mode: Mode = location === "/recuperar-acceso" ? "forgot" : "login";
+  const mode: Mode = location === "/recuperar-acceso" ? "forgot" : location === "/registrarse" ? "register" : "login";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -58,6 +62,8 @@ export default function Login() {
   function changeRoute(path: string) {
     setError(null);
     setMessage(null);
+    setEmail("");
+    setPassword("");
     setLocation(path);
   }
 
@@ -67,24 +73,42 @@ export default function Login() {
     setMessage(null);
 
     setIsSubmitting(true);
-    const result = mode === "login"
-      ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}${passwordResetPath}` });
-    setIsSubmitting(false);
 
-    if (result.error) {
-      // The status is enough to diagnose; the message can echo back the input.
-      console.error("Authentication request failed", { status: result.error.status });
-      setError(getAuthErrorMessage(result.error));
+    if (mode === "register") {
+      const result = await supabase.auth.signUp({ email, password, options: { data: { role: "seller" } } });
+      setIsSubmitting(false);
+      if (result.error) {
+        setError(getAuthErrorMessage(result.error));
+        return;
+      }
+      // Auto-login after registration
+      const loginResult = await supabase.auth.signInWithPassword({ email, password });
+      if (loginResult.error) {
+        setMessage("Cuenta creada. Ahora inicia sesión.");
+        return;
+      }
+      setLocation("/onboarding", { replace: true });
       return;
     }
 
     if (mode === "login") {
+      const result = await supabase.auth.signInWithPassword({ email, password });
+      setIsSubmitting(false);
+      if (result.error) {
+        setError(getAuthErrorMessage(result.error));
+        return;
+      }
       setLocation("/panel", { replace: true });
       return;
     }
 
-    // Worded so it reveals nothing about which addresses have an account.
+    // Forgot password
+    const result = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}${passwordResetPath}` });
+    setIsSubmitting(false);
+    if (result.error) {
+      setError(getAuthErrorMessage(result.error));
+      return;
+    }
     setMessage("Si el correo corresponde a una cuenta, recibirás un enlace para crear una contraseña nueva. Revisa también la carpeta de spam.");
   }
 
@@ -99,11 +123,9 @@ export default function Login() {
         </div>
 
         <div className="mt-10 grid items-center gap-12 lg:mt-14 lg:grid-cols-[1.1fr_minmax(380px,1fr)] lg:gap-16">
-          {/* On a phone the form comes first: staff sign in several times a day
-              and should not scroll past the pitch to reach it. */}
           <section className="space-y-10 lg:order-none">
             <div className="space-y-4">
-              <h1 className="font-display text-4xl leading-tight text-white sm:text-5xl">
+              <h1 className="font-display text-4xl leading-tight text-foreground sm:text-5xl">
                 El marketplace de tu barrio, <span className="text-primary">con datos seguros</span>
               </h1>
               <p className="max-w-lg text-base leading-relaxed text-muted-foreground">
@@ -125,22 +147,20 @@ export default function Login() {
               </li>
             ))}
           </ul>
-
-          <p className="text-sm text-muted-foreground">
-            El acceso lo crea el administrador de la plataforma. Si eres vendedor o comprador, pídeselo a quien gestiona ENVY Marketplace.
-          </p>
         </section>
 
         <section className="order-first w-full lg:order-none lg:max-w-md lg:justify-self-end">
           <form onSubmit={submit} className="space-y-5 rounded-2xl border border-border bg-card p-8 shadow-2xl">
             <div className="space-y-1.5">
-              <h2 className="text-xl font-semibold text-white">
-                {mode === "forgot" ? "Recuperar acceso" : "Inicia sesión"}
+              <h2 className="text-xl font-semibold text-foreground">
+                {mode === "forgot" ? "Recuperar acceso" : mode === "register" ? "Crear cuenta" : "Inicia sesión"}
               </h2>
               <p className="text-sm text-muted-foreground">
                 {mode === "forgot"
                   ? "Escribe tu correo y te enviaremos un enlace para crear una contraseña nueva."
-                  : "Entra con la cuenta que te asignó tu administrador."}
+                  : mode === "register"
+                  ? "Regístrate para crear tu propia tienda en el marketplace."
+                  : "Entra con tu correo y contraseña."}
               </p>
             </div>
 
@@ -157,7 +177,7 @@ export default function Login() {
               />
             </div>
 
-            {mode === "login" && (
+            {mode !== "forgot" && (
               <div className="space-y-1.5">
                 <label htmlFor="password" className="block text-sm font-medium">Contraseña</label>
                 <div className="relative">
@@ -167,7 +187,8 @@ export default function Login() {
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     required
-                    autoComplete="current-password"
+                    autoComplete={mode === "register" ? "new-password" : "current-password"}
+                    minLength={6}
                     className="pr-11"
                   />
                   <button
@@ -184,7 +205,7 @@ export default function Login() {
 
             {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
             {message && (
-              <p className="flex gap-2 text-sm text-green-400">
+              <p className="flex gap-2 text-sm text-green-600">
                 <CheckCircle2 className="h-4 w-4 shrink-0 translate-y-0.5" />
                 {message}
               </p>
@@ -192,16 +213,27 @@ export default function Login() {
 
             <Button className="w-full" type="submit" disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {mode === "login" ? "Ingresar" : "Enviar enlace de recuperación"}
+              {mode === "login" ? "Ingresar" : mode === "register" ? "Crear cuenta" : "Enviar enlace de recuperación"}
             </Button>
 
-            {mode === "login" ? (
+            {mode === "login" && (
               <button
                 type="button"
                 onClick={() => changeRoute("/recuperar-acceso")}
                 className="w-full rounded-md py-1 text-sm text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 ¿Olvidaste tu contraseña?
+              </button>
+            )}
+
+            {mode === "login" ? (
+              <button
+                type="button"
+                onClick={() => changeRoute("/onboarding")}
+                className="flex w-full items-center justify-center gap-1.5 rounded-md py-1 text-sm text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <UserPlus className="h-3.5 w-3.5" />
+                Crear una cuenta nueva
               </button>
             ) : (
               <button

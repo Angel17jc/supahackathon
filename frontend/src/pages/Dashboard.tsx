@@ -40,7 +40,7 @@ export default function Dashboard() {
           
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-4xl font-bold text-white font-display mb-2">Panel de Control</h1>
+              <h1 className="text-4xl font-bold text-foreground font-display mb-2">Panel de Control</h1>
               <p className="text-muted-foreground">Bienvenido de nuevo, resumen de tu negocio.</p>
             </div>
             <div className="px-4 py-2 bg-primary/10 rounded-full text-primary border border-primary/20 text-sm font-medium">
@@ -73,7 +73,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Chart Section */}
             <div className="lg:col-span-2 glass-panel p-6 rounded-2xl">
-              <h3 className="text-xl font-bold font-display text-white mb-6">Actividad de Inventario (7 días)</h3>
+              <h3 className="text-xl font-bold font-display text-foreground mb-6">Actividad de Inventario (7 días)</h3>
               <div className="h-80 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData}>
@@ -100,13 +100,13 @@ export default function Dashboard() {
 
             {/* Recent Movements */}
             <div className="glass-panel p-6 rounded-2xl flex flex-col">
-              <h3 className="text-xl font-bold font-display text-white mb-6">Movimientos Recientes</h3>
+              <h3 className="text-xl font-bold font-display text-foreground mb-6">Movimientos Recientes</h3>
               <div className="space-y-4 flex-1 overflow-auto pr-2 custom-scrollbar">
                 {stats?.recentMovements.length === 0 ? (
                   <p className="text-muted-foreground text-center py-8">No hay movimientos recientes</p>
                 ) : (
                   stats?.recentMovements.map((move: any) => (
-                    <div key={move.id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/5">
+                    <div key={move.id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-primary/5 transition-colors border border-transparent hover:border-border">
                       <div className={cn(
                         "p-2.5 rounded-lg shrink-0",
                         move.type === 'IN' ? "bg-green-500/10 text-green-400" : 
@@ -115,7 +115,7 @@ export default function Dashboard() {
                         <ArrowRightLeft className="w-5 h-5" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-white truncate">{move.product?.name}</p>
+                        <p className="text-sm font-semibold text-foreground truncate">{move.product?.name}</p>
                         <p className="text-xs text-muted-foreground">{format(new Date(move.createdAt), "dd MMM, HH:mm", { locale: es })}</p>
                       </div>
                       <div className="text-right">

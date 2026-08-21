@@ -12,9 +12,9 @@ import Categories from "@/modules/catalog/categories/CategoriesPage";
 import Platform from "@/modules/platform/PlatformPage";
 import ShopPage from "@/modules/marketplace/ShopPage";
 import ProductPage from "@/modules/marketplace/ProductPage";
-import SecurityPage from "@/modules/marketplace/SecurityPage";
 import Login from "@/pages/Login";
 import ResetPassword from "@/pages/ResetPassword";
+import OnboardingPage from "@/pages/OnboardingPage";
 import { AuthProvider, useAuth } from "@/lib/auth";
 
 const legacyPathRedirects: Record<string, string> = {
@@ -42,7 +42,14 @@ function ProtectedRouter() {
   const { session, role, activeOrganization, isLoading, isOrganizationsLoading, isPasswordRecovery } = useAuth();
   const [location, setLocation] = useLocation();
   const isPasswordReset = isPasswordRecovery || window.location.search.includes("reset=1");
-  const isPublicRoute = location === "/tienda" || location === "/iniciar-sesion" || location === "/recuperar-acceso" || location === "/restablecer-contrasena" || location.startsWith("/producto/");
+  const isPublicRoute =
+    location === "/tienda" ||
+    location === "/iniciar-sesion" ||
+    location === "/registrarse" ||
+    location === "/onboarding" ||
+    location === "/recuperar-acceso" ||
+    location === "/restablecer-contrasena" ||
+    location.startsWith("/producto/");
 
   useEffect(() => {
     if (isLoading || isOrganizationsLoading) return;
@@ -52,22 +59,34 @@ function ProtectedRouter() {
       return;
     }
 
+    // Not logged in → login page (unless on a public route)
     if ((!session || !role) && !isPasswordReset && !isPublicRoute) {
       setLocation("/iniciar-sesion", { replace: true });
       return;
     }
 
-    if (session && role && !isPasswordReset && location === "/iniciar-sesion") {
+    // Logged in but no organization → onboarding (unless already there)
+    if (session && role && !activeOrganization && location !== "/onboarding" && !isPublicRoute) {
+      setLocation("/onboarding", { replace: true });
+      return;
+    }
+
+    // Logged in with organization → redirect away from login
+    if (session && role && activeOrganization && (location === "/iniciar-sesion" || location === "/registrarse")) {
       setLocation("/panel", { replace: true });
     }
-  }, [isLoading, isOrganizationsLoading, isPasswordReset, isPublicRoute, location, role, session, setLocation]);
+  }, [isLoading, isOrganizationsLoading, isPasswordReset, isPublicRoute, location, role, session, activeOrganization, setLocation]);
 
   if (isLoading || isOrganizationsLoading) return <div className="min-h-screen bg-background" />;
   if (isPasswordReset) return <ResetPassword />;
+  if (location === "/onboarding") return <OnboardingPage />;
   if (location === "/tienda") return <ShopPage />;
   if (location.startsWith("/producto/")) return <ProductPage />;
-  if (!session || !role) return <Login />;
-  if (!activeOrganization) return <main className="grid min-h-screen place-items-center bg-background p-6 text-center text-muted-foreground">No tienes una empresa activa asignada.</main>;
+  if (!session || !role) {
+    if (location === "/registrarse" || location === "/recuperar-acceso") return <Login />;
+    return <Login />;
+  }
+  if (!activeOrganization) return <OnboardingPage />;
   return <Router />;
 }
 
@@ -79,7 +98,6 @@ function Router() {
       <Route path="/inventario" component={Inventory} />
       <Route path="/movimientos" component={Movements} />
       <Route path="/categorias" component={Categories} />
-      <Route path="/seguridad" component={SecurityPage} />
       {role === "platform_admin" && <Route path="/clientes" component={Platform} />}
 
       <Route component={NotFound} />

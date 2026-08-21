@@ -153,7 +153,7 @@ export default function ProductPage() {
             <div className="bg-primary/20 p-1.5 rounded-lg ring-1 ring-primary/50">
               <Store className="w-4 h-4 text-primary" />
             </div>
-            <span className="text-sm font-bold font-display tracking-wide text-white">ENVY</span>
+            <span className="text-sm font-bold font-display tracking-wide text-foreground">ENVY</span>
           </button>
         </div>
       </header>
@@ -183,7 +183,7 @@ export default function ProductPage() {
                 <Badge variant="secondary">{product.shopName}</Badge>
                 {product.categoryName && <Badge variant="outline">{product.categoryName}</Badge>}
               </div>
-              <h1 className="text-3xl font-bold font-display text-white">{product.name}</h1>
+              <h1 className="text-3xl font-bold font-display text-foreground">{product.name}</h1>
               <p className="text-3xl font-bold text-primary mt-2">
                 ${Number(product.sellingPrice).toFixed(2)}
               </p>
@@ -222,9 +222,9 @@ export default function ProductPage() {
             {/* Apartar */}
             {success ? (
               <div className="flex items-center gap-3 rounded-xl bg-green-500/10 border border-green-500/20 p-5">
-                <CheckCircle2 className="w-6 h-6 text-green-500 shrink-0" />
+                <CheckCircle2 className="w-6 h-6 text-green-600 shrink-0" />
                 <div>
-                  <p className="font-medium text-green-500">Apartado creado</p>
+                  <p className="font-medium text-green-600">Apartado creado</p>
                   <p className="text-sm text-muted-foreground mt-0.5">
                     Revisa "Mis apartados" para ver el estado de tu solicitud.
                   </p>
@@ -283,7 +283,7 @@ export default function ProductPage() {
         {related.length > 0 && (
           <div className="mt-16">
             <Separator className="mb-8" />
-            <h2 className="text-xl font-bold font-display text-white mb-6">
+            <h2 className="text-xl font-bold font-display text-foreground mb-6">
               Más de {product.shopName}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">

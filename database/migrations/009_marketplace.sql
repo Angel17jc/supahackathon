@@ -287,6 +287,7 @@ CREATE POLICY organizations_select_public ON organizations
 GRANT SELECT, INSERT, UPDATE ON reservations TO authenticated;
 GRANT SELECT ON audit_log TO authenticated;
 GRANT SELECT, UPDATE ON profiles TO authenticated;
+GRANT SELECT ON organization_memberships TO authenticated;
 
 -- =====================================================================
 -- 7. Storage: cada tienda escribe solo en su carpeta

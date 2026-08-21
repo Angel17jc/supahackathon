@@ -161,7 +161,7 @@ export default function ShopPage() {
               <Store className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl font-bold font-display tracking-wide text-white">ENVY</h1>
+              <h1 className="text-xl font-bold font-display tracking-wide text-foreground">ENVY</h1>
               <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em]">Marketplace</p>
             </div>
           </div>
@@ -180,7 +180,7 @@ export default function ShopPage() {
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         {/* Hero */}
         <div className="text-center space-y-3">
-          <h2 className="text-3xl font-bold font-display text-white">
+          <h2 className="text-3xl font-bold font-display text-foreground">
             Productos del barrio
           </h2>
           <p className="text-muted-foreground max-w-lg mx-auto">

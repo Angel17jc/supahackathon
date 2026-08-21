@@ -57,7 +57,7 @@ export default function Movements() {
       <main className="flex-1 overflow-auto">
         <div className="p-8 max-w-7xl mx-auto space-y-8">
           <div>
-            <h1 className="text-3xl font-bold font-display text-white mb-2">Movimientos de Stock</h1>
+            <h1 className="text-3xl font-bold font-display text-foreground mb-2">Movimientos de Stock</h1>
             <p className="text-muted-foreground">Registra entradas y salidas de mercancía.</p>
           </div>
 
@@ -157,7 +157,7 @@ export default function Movements() {
 
             {/* History Section */}
             <div className="lg:col-span-2 glass-panel p-6 rounded-2xl">
-              <h3 className="text-xl font-bold font-display text-white mb-6">Historial Reciente</h3>
+              <h3 className="text-xl font-bold font-display text-foreground mb-6">Historial Reciente</h3>
               
               <div className="space-y-4">
                 {isLoading ? (
@@ -180,7 +180,7 @@ export default function Movements() {
                       </div>
                       
                       <div className="flex-1">
-                        <h4 className="font-semibold text-white">{move.product?.name}</h4>
+                        <h4 className="font-semibold text-foreground">{move.product?.name}</h4>
                         <div className="flex gap-3 text-xs text-muted-foreground mt-1">
                           {move.createdAt && <span>{format(new Date(move.createdAt), "dd MMM yyyy, HH:mm", { locale: es })}</span>}
                           {move.reason && (

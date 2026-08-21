@@ -79,7 +79,7 @@ export default function Platform() {
     <main className="flex-1 overflow-auto p-8">
       <div className="mx-auto max-w-2xl space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-white">Administración de plataforma</h1>
+          <h1 className="text-3xl font-bold text-foreground">Administración de plataforma</h1>
           <p className="mt-2 text-muted-foreground">Crea una licorería cliente y el usuario propietario que la administrará.</p>
         </div>
         <form onSubmit={submit} className="space-y-5 rounded-2xl border border-border bg-card p-6 shadow-xl">
@@ -91,7 +91,7 @@ export default function Platform() {
         </form>
         <form onSubmit={submitUser} className="space-y-5 rounded-2xl border border-border bg-card p-6 shadow-xl">
           <div>
-            <h2 className="text-xl font-semibold text-white">Agregar usuario a un cliente</h2>
+            <h2 className="text-xl font-semibold text-foreground">Agregar usuario a un cliente</h2>
             <p className="mt-1 text-sm text-muted-foreground">Crea credenciales para el personal de una licorería existente.</p>
           </div>
           <select aria-label="Empresa" value={userForm.organizationId} onChange={(event) => setUserForm({ ...userForm, organizationId: event.target.value })} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" required>
@@ -107,7 +107,7 @@ export default function Platform() {
           <Button type="submit" disabled={isUserSubmitting || organizations.length === 0} className="w-full">{isUserSubmitting ? "Creando usuario..." : "Crear usuario"}</Button>
         </form>
         <section className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-xl">
-          <h2 className="text-xl font-semibold text-white">Personal del cliente</h2>
+          <h2 className="text-xl font-semibold text-foreground">Personal del cliente</h2>
           {staff.map((member) => <div key={member.id} className="flex flex-wrap items-center gap-3 border-b border-border pb-3 text-sm last:border-0">
             <span className="min-w-48 flex-1 text-muted-foreground">{member.email}</span>
             {member.role === "owner" ? <span className="text-xs text-muted-foreground">Propietario</span> : <>

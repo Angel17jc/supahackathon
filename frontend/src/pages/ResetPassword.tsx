@@ -111,7 +111,7 @@ export default function ResetPassword() {
           <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-primary/15 text-primary">
             <ShieldCheck />
           </div>
-          <h1 className="text-2xl font-bold text-white">Nueva contraseña</h1>
+          <h1 className="text-2xl font-bold text-foreground">Nueva contraseña</h1>
           <p className="text-sm text-muted-foreground">Crea una contraseña segura para tu cuenta.</p>
         </div>
 

@@ -38,6 +38,84 @@ export async function registerRoutes(
   // catálogo, y la sesión aparece solo cuando alguien quiere apartar algo.
   registerPublicCatalogRoutes(app);
 
+  // Registro de nueva tienda: un usuario crea su cuenta y su tienda en un solo paso.
+  app.post("/api/auth/register-shop", async (req, res, next) => {
+    try {
+      const { email, password, shopName } = req.body;
+      if (!email || !password || !shopName) {
+        return res.status(400).json({ message: "Correo, contraseña y nombre de tienda son requeridos" });
+      }
+      if (typeof shopName !== "string" || shopName.trim().length < 2) {
+        return res.status(400).json({ message: "El nombre de la tienda debe tener al menos 2 caracteres" });
+      }
+
+      const slug = shopName.trim()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+      // Check slug uniqueness
+      const { data: existing } = await (supabase as any)
+        .from("organizations").select("id").eq("slug", slug).maybeSingle();
+      if (existing) {
+        return res.status(409).json({ message: "Ya existe una tienda con ese nombre. Prueba con otro." });
+      }
+
+      // Create user via admin API (auto-confirms email)
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: email.trim().toLowerCase(),
+        password,
+        email_confirm: true,
+      });
+      if (authError || !authData.user) {
+        const msg = authError?.message?.includes("already")
+          ? "Este correo ya está registrado. Inicia sesión."
+          : "No se pudo crear la cuenta";
+        return res.status(400).json({ message: msg });
+      }
+
+      const userId = authData.user.id;
+
+      // Create organization
+      const { data: org, error: orgError } = await (supabase as any)
+        .from("organizations")
+        .insert({ name: shopName.trim(), slug, status: "active" })
+        .select("id, name, slug, status")
+        .single();
+      if (orgError) {
+        await supabase.auth.admin.deleteUser(userId);
+        throw orgError;
+      }
+
+      // Add user as owner
+      const { error: membershipError } = await (supabase as any)
+        .from("organization_memberships")
+        .insert({ organization_id: org.id, user_id: userId, role: "owner", status: "active" });
+      if (membershipError) {
+        await supabase.auth.admin.deleteUser(userId);
+        await (supabase as any).from("organizations").delete().eq("id", org.id);
+        throw membershipError;
+      }
+
+      // Create profile
+      await (supabase as any)
+        .from("profiles")
+        .upsert({ id: userId, full_name: email.split("@")[0] });
+
+      // Sign in the user and return session
+      const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+
+      return res.status(201).json({
+        organization: org,
+        session: sessionData?.session ?? null,
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // Apartados y auditoría exigen sesión pero no organización. Un comprador no
   // pertenece a ninguna tienda, así que el guardia de contexto lo dejaría fuera
   // de su propia lista de apartados.
