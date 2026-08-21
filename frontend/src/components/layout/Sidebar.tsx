@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Package, Tag, Truck, ArrowRightLeft, Wine, CreditCard, Building2, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, Tag, ArrowRightLeft, Store, Shield, Building2, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 
@@ -7,9 +7,8 @@ const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/panel" },
   { icon: Package, label: "Inventario", href: "/inventario" },
   { icon: Tag, label: "Categorías", href: "/categorias" },
-  { icon: Truck, label: "Proveedores", href: "/proveedores" },
   { icon: ArrowRightLeft, label: "Movimientos", href: "/movimientos" },
-  { icon: CreditCard, label: "Fiados", href: "/fiados" },
+  { icon: Shield, label: "Seguridad", href: "/seguridad" },
 ];
 
 export function Sidebar() {
@@ -21,11 +20,11 @@ export function Sidebar() {
       {/* Brand */}
       <div className="flex items-center gap-3 px-6 py-8 border-b border-border/30">
         <div className="bg-primary/20 p-2 rounded-xl ring-1 ring-primary/50">
-          <Wine className="w-8 h-8 text-primary" />
+          <Store className="w-8 h-8 text-primary" />
         </div>
         <div>
-          <h1 className="text-xl font-bold font-display tracking-wide text-white">Licorería</h1>
-          <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Manager</p>
+          <h1 className="text-xl font-bold font-display tracking-wide text-white">ENVY</h1>
+          <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Marketplace</p>
         </div>
       </div>
 
@@ -74,7 +73,7 @@ export function Sidebar() {
         <button onClick={() => void signOut()} className="mt-3 flex w-full items-center justify-center gap-2 text-xs text-muted-foreground transition-colors hover:text-white">
           <LogOut className="h-4 w-4" /> Cerrar sesión
         </button>
-        <p className="text-xs text-center text-muted-foreground">© 2026 Licorería Manager</p>
+        <p className="text-xs text-center text-muted-foreground">© 2026 ENVY Marketplace</p>
       </div>
     </div>
   );

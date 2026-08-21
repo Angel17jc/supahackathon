@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, ArrowRightLeft, CheckCircle2, CreditCard, Eye, EyeOff, Loader2, PackageSearch, ShieldCheck, Wine } from "lucide-react";
+import { ArrowLeft, ArrowRightLeft, CheckCircle2, Eye, EyeOff, Loader2, PackageSearch, ShieldCheck, Store } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,18 +12,18 @@ const passwordResetPath = "/restablecer-contrasena?reset=1";
 const capabilities = [
   {
     icon: PackageSearch,
-    title: "Inventario siempre al día",
-    description: "Existencias, costos y precios por producto, con aviso cuando algo baja del mínimo.",
+    title: "Catálogo público",
+    description: "Cualquiera navega los productos de las tiendas del barrio sin necesidad de cuenta.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Aislamiento de datos",
+    description: "Cada tienda solo ve y gestiona sus propios productos y apartados.",
   },
   {
     icon: ArrowRightLeft,
-    title: "Cada movimiento queda registrado",
-    description: "Entradas, salidas y ajustes con su motivo y su fecha, para saber a qué se fue el stock.",
-  },
-  {
-    icon: CreditCard,
-    title: "Fiados bajo control",
-    description: "Quién debe, cuánto y desde cuándo. Los abonos se descuentan del saldo al instante.",
+    title: "Auditoría inmutable",
+    description: "Cada acción queda registrada. Ni siquiera la clave de servicio puede borrar el registro.",
   },
 ];
 
@@ -93,9 +93,9 @@ export default function Login() {
       <div className="mx-auto max-w-6xl px-6 py-10 lg:py-16">
         <div className="flex items-center gap-3">
           <span className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/15 text-primary">
-            <Wine className="h-6 w-6" />
+            <Store className="h-6 w-6" />
           </span>
-          <span className="text-lg font-semibold tracking-tight">Licorería Manager</span>
+          <span className="text-lg font-semibold tracking-tight">ENVY Marketplace</span>
         </div>
 
         <div className="mt-10 grid items-center gap-12 lg:mt-14 lg:grid-cols-[1.1fr_minmax(380px,1fr)] lg:gap-16">
@@ -104,11 +104,11 @@ export default function Login() {
           <section className="space-y-10 lg:order-none">
             <div className="space-y-4">
               <h1 className="font-display text-4xl leading-tight text-white sm:text-5xl">
-                El control de tu licorería, <span className="text-primary">en un solo lugar</span>
+                El marketplace de tu barrio, <span className="text-primary">con datos seguros</span>
               </h1>
               <p className="max-w-lg text-base leading-relaxed text-muted-foreground">
-                Lleva el inventario, registra cada entrada y salida, y sabe al momento quién te debe.
-                Pensado para el mostrador: rápido de usar y sin cuentas que cuadrar a mano.
+                Las tiendas publican su catálogo, los compradores exploran sin sesión, y cada
+                tienda solo ve lo suyo. Aislamiento real, no un frontend que esconde botones.
               </p>
             </div>
 
@@ -127,7 +127,7 @@ export default function Login() {
           </ul>
 
           <p className="text-sm text-muted-foreground">
-            El acceso lo crea el administrador de tu negocio. Si todavía no tienes uno, pídeselo a quien gestiona el local.
+            El acceso lo crea el administrador de la plataforma. Si eres vendedor o comprador, pídeselo a quien gestiona ENVY Marketplace.
           </p>
         </section>
 
