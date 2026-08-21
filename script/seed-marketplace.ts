@@ -206,6 +206,56 @@ async function ensureOrganization(slug: string, name: string): Promise<string> {
   return inserted.data.id;
 }
 
+const extensiones: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/svg+xml": "svg",
+};
+
+/**
+ * Trae la foto de origen y la deja en el bucket, devolviendo su URL pública.
+ *
+ * El seed guardaba directamente la dirección de Unsplash, y eso dejaba la
+ * vitrina colgando de un CDN ajeno: Storage sostenía las políticas pero no las
+ * imágenes, la demo dependía del wifi del evento y la cabecera CSP tenía que
+ * autorizar un dominio más. Bajarlas una vez al sembrar resuelve las tres cosas.
+ *
+ * Si la descarga falla, devuelve null y el producto se queda sin portada en vez
+ * de guardar un enlace roto: un hueco se ve al sembrar, un 404 aparece en la
+ * demo.
+ */
+async function importarPortada(
+  origen: string,
+  organizationId: string,
+  productId: number,
+): Promise<string | null> {
+  for (let intento = 1; intento <= 3; intento += 1) {
+    try {
+      const respuesta = await fetch(origen);
+      if (!respuesta.ok) return null;
+
+      // El tipo lo decide la respuesta: las URL de Unsplash no llevan extensión
+      // y el bucket rechaza lo que no reconoce.
+      const tipo = (respuesta.headers.get("content-type") ?? "").split(";")[0].trim();
+      const extension = extensiones[tipo];
+      if (!extension) return null;
+
+      const bytes = new Uint8Array(await respuesta.arrayBuffer());
+      const ruta = `${organizationId}/${productId}/portada.${extension}`;
+      const subida = await db.storage.from(BUCKET).upload(ruta, bytes, { contentType: tipo, upsert: true });
+      if (subida.error) return null;
+
+      return `${url}/storage/v1/object/public/${BUCKET}/${ruta}`;
+    } catch {
+      // Bajar cuarenta imágenes seguidas del mismo CDN corta la conexión a
+      // mitad. Se reintenta con espera creciente antes de darla por perdida.
+      await new Promise((listo) => setTimeout(listo, intento * 1500));
+    }
+  }
+  return null;
+}
+
 async function main() {
   console.log("Vaciando el catálogo anterior…");
   // El orden importa: los apartados y los movimientos apuntan a productos, y la
@@ -246,12 +296,30 @@ async function main() {
       selling_price: product.sellingPrice,
       min_stock_level: product.minStock,
       category_id: categoryId.get(product.category),
-      image_url: product.image,
       is_published: true,
     }));
     const products = await db.from("products").insert(productRows).select("id, name");
     if (products.error) throw products.error;
     console.log(`  ${products.data.length} productos publicados`);
+
+    // La ruta lleva el id del producto, así que la portada no puede subirse
+    // hasta que la fila existe.
+    let conPortada = 0;
+    const sinPortada: string[] = [];
+    for (const [indice, fila] of (products.data as any[]).entries()) {
+      const origen = shop.products[indice]?.image;
+      if (!origen) continue;
+      const publica = await importarPortada(origen, organizationId, fila.id);
+      if (!publica) {
+        sinPortada.push(fila.name);
+        continue;
+      }
+      const guardado = await db.from("products").update({ image_url: publica }).eq("id", fila.id);
+      if (guardado.error) throw guardado.error;
+      conPortada += 1;
+    }
+    console.log(`  ${conPortada} portadas en Storage`);
+    if (sinPortada.length) console.log(`  sin portada: ${sinPortada.join(", ")}`);
 
     for (const row of products.data as any[]) {
       productIndex.push({ id: row.id, organizationId, name: row.name, shop: shop.slug });
